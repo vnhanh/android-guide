@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
 import { usePlatform } from '../context/PlatformContext';
 
-export type AppView = 'home' | 'doc' | 'framework' | 'matrix' | 'level' | 'domain' | 'about';
+export type AppView = 'home' | 'doc' | 'framework' | 'matrix' | 'level' | 'domain' | 'about' | 'demo';
 
 interface HeaderProps {
   currentView: AppView;

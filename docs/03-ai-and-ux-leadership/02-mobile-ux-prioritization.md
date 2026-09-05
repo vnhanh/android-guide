@@ -19,17 +19,12 @@ status: complete
 
 ---
 
-## 🌟 2. STAR Method Case Study: Optimistic UI & Shimmer
-
-- **Situation**: User feedback indicated perception of slow network responses during transaction submissions.
-- **Task**: Eliminate perceived waiting time without increasing backend API infrastructure costs.
-- **Action**: Implemented **Optimistic UI Updates** (immediately updating UI state assuming request success, rolling back cleanly upon error) alongside **Shimmer Content Placeholders**.
-- **Result**: Reduced user drop-off rate by **18%** and increased user satisfaction ratings.
-
----
-
-## 📱 3. Key Mobile UX Standards
-
-- **Predictive Back Gesture**: Provides live preview of destination back stack screens during back gestures on Android 14+ / iOS.
-- **Edge-to-Edge Display**: Extends app layout under transparent status and navigation bars for immersive modern visual experiences.
-- **Configuration Change Preservation**: Retains active input fields and scroll positions smoothly across device rotations and multi-window resizing.
+> Section 2 (the optimistic-UI-and-shimmer case study) has been re-filed into
+> [`data-senior-android`](../05-data-persistence-and-offline/senior-android.md) — see its
+> "Optimistic UI and durable retry queues on `WorkManager`" section, which also states the
+> durable-retry-queue requirement this section's original version left implicit. Section 3
+> ("Key Mobile UX Standards" — predictive back, edge-to-edge, configuration-change preservation)
+> has been re-filed into
+> [`ui-mid-android`](../03-ui-and-interaction-engineering/mid-android.md). Section 1 above still
+> awaits re-filing into domain 18 (the prioritisation framework, Lead) — this article stays
+> until it lands.

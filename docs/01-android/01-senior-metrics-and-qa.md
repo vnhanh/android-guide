@@ -54,14 +54,10 @@ viewLifecycleOwner.lifecycleScope.launch {
 
 ---
 
-### Case 3: Hilt Dependency Injection in Multi-Module Architecture
-
-> [!WARNING]
-> Multi-module Hilt setups can suffer from graph coupling, memory bloat from over-scoping, and increased compilation times.
-
-1. **Dependency Inversion**: Dynamic Feature Modules (DFM) depend on the `:app` module, while `:app` depends on features. Mitigated cyclic dependencies using entry points and decoupled navigation interfaces.
-2. **Component Scoping**: Avoided marking all module dependencies `@Singleton`. Replaced global scopes with feature-scoped or stateless bindings to prevent memory bloat.
-3. **Build Overhead**: Replaced KAPT processors with **KSP** (Kotlin Symbol Processing) to reduce annotation processing time by ~30%.
+> Case 3 (Hilt DI in multi-module architecture) has been re-filed into
+> [`architecture-senior`](../07-architecture-and-modularisation/senior-shared.md) per
+> `plan/gap-analysis.md`. Cases 1, 2, 4 and 5 still await re-filing into domains 09 (Senior,
+> ×2), 14 (Lead) and 17 (Lead) — this article stays until all four land.
 
 ---
 

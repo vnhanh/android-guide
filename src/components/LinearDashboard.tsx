@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, Sparkles, ArrowRight, Smartphone, Building2, Cpu, Grid3x3, Layers, CheckCircle2, Circle } from 'lucide-react';
 import { categories, docsRegistry } from '../data/docsRegistry';
-import { DOMAINS } from '../data/framework';
+import { DOMAINS, isDomainFiled } from '../data/framework';
 import { useI18n } from '../context/I18nContext';
 import { DocItem, Level } from '../types';
 
@@ -43,15 +43,15 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
     }
   };
 
-  const coveredCount = DOMAINS.filter(d => d.existingArticleIds.length > 0).length;
+  const coveredCount = DOMAINS.filter(d => d.existingArticleIds.length > 0 || isDomainFiled(d.slug)).length;
 
   const popularDocs = [
     docsRegistry.find(d => d.id === 'senior-metrics-and-qa'),
-    docsRegistry.find(d => d.id === 'multi-module-architecture-and-routing'),
+    docsRegistry.find(d => d.id === 'architecture-senior'),
     docsRegistry.find(d => d.id === 'apk-compilation-and-r8-proguard'),
-    docsRegistry.find(d => d.id === 'coroutines-and-flow-concurrency'),
-    docsRegistry.find(d => d.id === 'gradle-optimization-and-profiling'),
-    docsRegistry.find(d => d.id === 'oop-and-solid-principles'),
+    docsRegistry.find(d => d.id === 'concurrency-mid-android'),
+    docsRegistry.find(d => d.id === 'release-senior-android'),
+    docsRegistry.find(d => d.id === 'fundamentals-mid-android'),
   ].filter(Boolean) as DocItem[];
 
   return (
@@ -171,7 +171,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {DOMAINS.map(domain => {
-              const covered = domain.existingArticleIds.length > 0;
+              const covered = domain.existingArticleIds.length > 0 || isDomainFiled(domain.slug);
               return (
                 <button
                   key={domain.slug}

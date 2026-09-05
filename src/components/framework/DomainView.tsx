@@ -1,7 +1,8 @@
 import React from 'react';
 import { BookOpen, ArrowLeft, Layers } from 'lucide-react';
-import { getDomain } from '../../data/framework';
+import { getDomain, filedArticlesForDomain } from '../../data/framework';
 import { docsRegistry } from '../../data/docsRegistry';
+import { Band, Platform } from '../../types';
 
 interface DomainViewProps {
   slug: string;
@@ -19,6 +20,10 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
       </main>
     );
   }
+
+  const filed = filedArticlesForDomain(slug);
+  const findFiled = (band: Band, platform: Platform) =>
+    filed.find(d => d.band === band && d.platform === platform);
 
   const linkedArticles = domain.existingArticleIds
     .map(id => docsRegistry.find(d => d.id === id))
@@ -45,31 +50,59 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
           Platform treatment: <span className="font-semibold text-slate-700 dark:text-slate-300">{domain.platformTreatment}</span>
         </p>
-        <div className="mt-4 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 text-xs text-amber-800 dark:text-amber-300">
-          Stub page (Phase 1). Band-unit articles for this domain have not been written yet —
-          that is Phase 2 onward. See <code className="px-1 rounded bg-black/5 dark:bg-white/10">plan/domains.md</code> for
-          the full section-by-section plan.
-        </div>
+        {filed.length === 0 ? (
+          <div className="mt-4 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 text-xs text-amber-800 dark:text-amber-300">
+            Stub page (Phase 1). Band-unit articles for this domain have not been written yet —
+            that is Phase 2 onward. See <code className="px-1 rounded bg-black/5 dark:bg-white/10">plan/domains.md</code> for
+            the full section-by-section plan.
+          </div>
+        ) : (
+          <div className="mt-4 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-xs text-emerald-800 dark:text-emerald-300">
+            {filed.length} band-unit {filed.length === 1 ? 'article' : 'articles'} filed against this domain so far.
+          </div>
+        )}
       </header>
 
       {/* Band definitions */}
       <section className="mb-10 grid grid-cols-1 gap-4">
         {(['mid', 'senior', 'lead'] as const).map(band => {
           const label = band === 'mid' ? 'Mid' : band === 'senior' ? 'Senior' : 'Lead';
+          const bandCode = (band === 'mid' ? 'M' : band === 'senior' ? 'S' : 'L') as Band;
           const styles = {
             mid: { box: 'border-emerald-500/20 bg-emerald-500/5', text: 'text-emerald-600 dark:text-emerald-400' },
             senior: { box: 'border-cyan-500/20 bg-cyan-500/5', text: 'text-cyan-600 dark:text-cyan-400' },
             lead: { box: 'border-amber-500/20 bg-amber-500/5', text: 'text-amber-600 dark:text-amber-400' },
           }[band];
+
+          const platforms: { platform: Platform; label: string }[] =
+            bandCode === 'L'
+              ? [{ platform: 'shared', label: 'Shared' }]
+              : [{ platform: 'android', label: 'Android' }, { platform: 'ios', label: 'iOS' }];
+
           return (
             <div key={band} className={`p-4 rounded-xl border ${styles.box}`}>
               <div className={`text-xs font-bold uppercase tracking-wider mb-1.5 ${styles.text}`}>{label}</div>
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{domain.matrix[band]}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">Android · not yet written</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">iOS · not yet written</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">English · pending</span>
-                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">Vietnamese · pending</span>
+                {platforms.map(({ platform, label: platformLabel }) => {
+                  const article = findFiled(bandCode, platform);
+                  return article ? (
+                    <button
+                      key={platform}
+                      onClick={() => onSelectDoc(article.id)}
+                      className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 font-semibold hover:bg-cyan-500/20 transition"
+                    >
+                      {platformLabel} · {article.langStatus.en === 'complete' ? 'written' : 'pending'}
+                    </button>
+                  ) : (
+                    <span
+                      key={platform}
+                      className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                    >
+                      {platformLabel} · not yet written
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );

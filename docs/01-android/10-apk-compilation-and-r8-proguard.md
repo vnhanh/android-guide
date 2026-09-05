@@ -11,16 +11,11 @@ status: complete
 
 # Android APK Compilation Pipeline & R8/ProGuard Optimizations
 
-## 🏗️ 1. Complete Android Build Pipeline
-
-```mermaid
-graph LR
-    Res["Resources / XML"] --> AAPT2["AAPT2"] --> APKPack["Packaging"]
-    Src["Java / Kotlin Source"] --> javac["kotlinc / javac"] --> Bytecode["Java Bytecode (.class)"]
-    Bytecode --> R8["R8 Compiler (Tree Shaking & Obfuscation)"] --> DEX["Android DEX (.dex)"]
-    DEX --> APKPack
-    APKPack --> Sign["App Signing (v2/v3/v4)"] --> ZipAlign["ZipAlign"] --> FinalAPK["Final APK / AAB"]
-```
+> Section 1 ("Complete Android Build Pipeline") has been re-filed into
+> [`release-mid-android`](../11-build-release-and-cicd/mid-android.md) per
+> `plan/gap-analysis.md`. Sections 2-3 below still await re-filing into domain 09 (shrinking &
+> size, Senior) and domain 10 (keep rules & obfuscation, Senior) — this article stays until
+> both land.
 
 ---
 

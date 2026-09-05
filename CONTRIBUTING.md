@@ -34,7 +34,7 @@ domain: 04-concurrency-and-asynchrony   # see plan/framework.md for the 20 domai
 band: M                                  # M | S | L  (Mid | Senior | Lead)
 platform: android                        # android | ios | shared
 level: Mid                               # Mid | Senior | Lead — mirrors band, human-readable
-prerequisites: [oop-and-solid-principles]  # article ids the reader should already know
+prerequisites: [fundamentals-senior-android]  # article ids the reader should already know
 outcomes:
   - "Write a screen whose in-flight work stops when the screen goes away, and demonstrate it stopping"
 counterpart: concurrency-mid-ios         # platform-specific units only — must point back
@@ -133,3 +133,19 @@ business in this Vite repo's CI, and the first article that actually needs a lin
 Domain 04's Phase 2 pilot — creating empty companion repos now would sit unused for at least one
 phase and risk drifting out of sync with whatever CI/tag convention Phase 2 settles on. Revisit
 this at the start of Phase 2 (see `plan/phases.md` → Phase 2, "pilot carries the assets too").
+
+**Revisited at the Domain 04 pilot, still deferred — for a different reason.** `plan/phases.md`
+asks the pilot to carry one Mermaid figure, one raster capture with provenance, one interactive
+demo, and one sample repo linked by tag, in order to prove the asset pipeline early. The Mermaid
+figures and the interactive demo (`concurrency-cooperative-cancellation`) are done. The raster
+capture and the sample repo are not, and were not faked to look done:
+
+- A raster capture must be a real, run tool output (a Perfetto trace, an Android Studio profiler
+  session) per `.agents/rules/demonstration_assets.md`'s "real captures only" rule. This
+  environment has no Android emulator/device or profiler attached to produce one honestly.
+- A linked sample repo needs an actual runnable, CI'd Gradle/Xcode project pinned by tag — a
+  real side-project, not a stub — which the reasoning above already flagged as out of place in
+  this repo's own CI and not yet worth creating speculatively.
+
+Both remain open work items for whoever has the tooling (a machine with Android Studio /
+Xcode and a device or emulator) to do honestly, rather than being invented here.

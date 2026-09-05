@@ -73,7 +73,7 @@ interface RawArticleFile {
   path: string;
   category: string;
   sidebar_position: number;
-  data: Record<string, string | number | string[]>;
+  data: Record<string, string | number | string[] | Record<string, string>[]>;
   body: string;
 }
 
@@ -138,6 +138,27 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
   const counterpart = primary.data.counterpart ? String(primary.data.counterpart) : undefined;
   const demo = primary.data.demo ? String(primary.data.demo) : undefined;
 
+  const resources = Array.isArray(primary.data.resources)
+    ? (primary.data.resources as Record<string, string>[]).map(r => ({
+        title: r.title ?? '',
+        url: r.url ?? '',
+        date: r.date ?? '',
+      }))
+    : [];
+  const figures = Array.isArray(primary.data.figures)
+    ? (primary.data.figures as Record<string, string>[]).map(f => ({
+        path: f.path ?? '',
+        alt: f.alt ?? '',
+        caption: f.caption ?? '',
+      }))
+    : undefined;
+  const samples = Array.isArray(primary.data.samples)
+    ? (primary.data.samples as Record<string, string>[]).map(s => ({
+        repo: s.repo ?? '',
+        tag: s.tag ?? '',
+      }))
+    : undefined;
+
   return {
     id,
     title,
@@ -158,8 +179,10 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
     counterpart,
     prerequisites,
     outcomes,
-    resources: [],
+    resources,
+    figures,
     demo,
+    samples,
     langStatus: { en: enStatus, vi: viStatus },
     content: viStatus === 'complete' ? (vi?.body ?? '') : '',
     contentEn: enStatus === 'complete' ? (en?.body ?? '') : '',

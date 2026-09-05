@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Copy, Check, ChevronLeft, ChevronRight, BookOpen, Clock, Tag, Award, AlertCircle, Info, Lightbulb, AlertTriangle, ShieldAlert, Languages } from 'lucide-react';
+import { Copy, Check, ChevronLeft, ChevronRight, BookOpen, Clock, Tag, Award, AlertCircle, Info, Lightbulb, AlertTriangle, ShieldAlert, Languages, Target, PlaySquare, ExternalLink } from 'lucide-react';
 import { DocItem } from '../types';
 import { docsRegistry } from '../data/docsRegistry';
 import { useI18n } from '../context/I18nContext';
+import { MermaidDiagram } from './MermaidDiagram';
 
 interface DocViewerProps {
   doc: DocItem;
   onSelectDoc: (docId: string) => void;
   onNavigateHome: () => void;
+  onOpenDemo?: (slug: string) => void;
 }
 
-export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNavigateHome }) => {
+export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNavigateHome, onOpenDemo }) => {
   const { lang, t } = useI18n();
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
 
@@ -30,9 +32,106 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
   const prevDoc = currentIndex > 0 ? sortedDocs[currentIndex - 1] : null;
   const nextDoc = currentIndex < sortedDocs.length - 1 ? sortedDocs[currentIndex + 1] : null;
 
+  // Inline markdown — `code spans` and **bold** — inside otherwise-plain text.
+  // Headings, paragraphs, list items, table cells, blockquotes and callout
+  // bodies all route through this rather than rendering raw asterisks/backticks.
+  const renderInline = (text: string, keyBase: string): React.ReactNode[] => {
+    const nodes: React.ReactNode[] = [];
+    const regex = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let i = 0;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+      const token = match[0];
+      if (token.startsWith('`')) {
+        nodes.push(
+          <code key={`${keyBase}-c-${i}`} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-cyan-700 dark:text-cyan-400 text-[0.85em] font-mono">
+            {token.slice(1, -1)}
+          </code>
+        );
+      } else if (token.startsWith('**')) {
+        // Recurse so a code span nested inside **bold** (e.g. "**the `Foo` API**")
+        // still renders as code instead of literal backticks.
+        nodes.push(
+          <strong key={`${keyBase}-b-${i}`} className="font-bold text-slate-900 dark:text-white">
+            {renderInline(token.slice(2, -2), `${keyBase}-b-${i}`)}
+          </strong>
+        );
+      } else {
+        nodes.push(
+          <em key={`${keyBase}-i-${i}`}>{renderInline(token.slice(1, -1), `${keyBase}-i-${i}`)}</em>
+        );
+      }
+      i++;
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+    return nodes;
+  };
+
+  // Markdown paragraphs and list items are conventionally hard-wrapped across several
+  // physical lines with no blank line between them (a real newline only starts a new
+  // block after a blank line). The per-line renderer below treats every non-blank line
+  // as its own block, so wrapped prose must be rejoined into one logical line per
+  // paragraph/list item first — everything inside a fenced code block, and every table,
+  // heading, blockquote or callout line, passes through untouched.
+  const mergeWrappedLines = (rawLines: string[]): string[] => {
+    const out: string[] = [];
+    let inFence = false;
+    let buffer: string[] = [];
+
+    const flush = () => {
+      if (buffer.length > 0) {
+        out.push(buffer.join(' '));
+        buffer = [];
+      }
+    };
+
+    for (const raw of rawLines) {
+      const trimmed = raw.trim();
+
+      if (trimmed.startsWith('```')) {
+        flush();
+        inFence = !inFence;
+        out.push(raw);
+        continue;
+      }
+      if (inFence) {
+        out.push(raw);
+        continue;
+      }
+      if (trimmed === '') {
+        flush();
+        out.push('');
+        continue;
+      }
+
+      const isTableRow = trimmed.startsWith('|') && trimmed.endsWith('|');
+      const isHeading = /^#{1,6}\s/.test(trimmed);
+      const isBlockquote = trimmed.startsWith('>');
+      const isListStart = /^(?:[-*]|\d+\.)\s/.test(trimmed);
+
+      if (isTableRow || isHeading || isBlockquote) {
+        flush();
+        out.push(raw);
+        continue;
+      }
+      if (isListStart) {
+        flush();
+        buffer = [trimmed];
+        continue;
+      }
+      // Continuation of the paragraph or list item currently in the buffer.
+      buffer.push(trimmed);
+    }
+    flush();
+    return out;
+  };
+
   // Custom parser to format GFM Callouts and Code Blocks nicely
   const renderFormattedMarkdown = (markdownText: string) => {
-    const lines = markdownText.trim().split('\n');
+    const lines = mergeWrappedLines(markdownText.trim().split('\n'));
     const elements: React.ReactNode[] = [];
 
     let inCodeBlock = false;
@@ -42,6 +141,57 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
 
     let inTable = false;
     let tableRows: string[][] = [];
+
+    // GFM callouts (`> [!NOTE]` etc.) span multiple `>`-prefixed lines; a plain
+    // `>` blockquote (no `[!TYPE]`) does too. Both are accumulated across
+    // lines and flushed as one block once a non-`>` line ends them.
+    let calloutType: string | null = null;
+    let calloutLines: string[] = [];
+    let blockquoteLines: string[] = [];
+
+    const flushCallout = (keyIndex: number) => {
+      if (!calloutType) return;
+      const bodyText = calloutLines.join(' ').trim();
+
+      let borderClass = 'border-blue-500 bg-blue-500/10 text-blue-900 dark:text-blue-200';
+      let icon = <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />;
+      if (calloutType === 'TIP') {
+        borderClass = 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200';
+        icon = <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />;
+      } else if (calloutType === 'IMPORTANT') {
+        borderClass = 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200';
+        icon = <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />;
+      } else if (calloutType === 'WARNING') {
+        borderClass = 'border-rose-500 bg-rose-500/10 text-rose-900 dark:text-rose-200';
+        icon = <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />;
+      }
+
+      elements.push(
+        <div key={`callout-${keyIndex}`} className={`my-4 p-4 rounded-xl border-l-4 ${borderClass} shadow-sm text-xs sm:text-sm flex items-start gap-3`}>
+          {icon}
+          <div className="leading-relaxed">
+            <div className="font-bold uppercase tracking-wide text-[11px] mb-1">{calloutType}</div>
+            {bodyText && <div>{renderInline(bodyText, `callout-${keyIndex}`)}</div>}
+          </div>
+        </div>
+      );
+      calloutType = null;
+      calloutLines = [];
+    };
+
+    const flushBlockquote = (keyIndex: number) => {
+      if (blockquoteLines.length === 0) return;
+      const bodyText = blockquoteLines.join(' ').trim();
+      elements.push(
+        <blockquote
+          key={`quote-${keyIndex}`}
+          className="my-4 pl-4 border-l-4 border-slate-300 dark:border-slate-700 text-sm sm:text-base text-slate-600 dark:text-slate-400 italic leading-relaxed"
+        >
+          {renderInline(bodyText, `quote-${keyIndex}`)}
+        </blockquote>
+      );
+      blockquoteLines = [];
+    };
 
     const flushTable = (keyIndex: number) => {
       if (tableRows.length === 0) return;
@@ -55,7 +205,7 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
               <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold">
                 {headers.map((h, i) => (
                   <th key={i} className="p-3 border-r border-slate-200 dark:border-slate-800 last:border-r-0">
-                    {h.trim()}
+                    {renderInline(h.trim(), `th-${keyIndex}-${i}`)}
                   </th>
                 ))}
               </tr>
@@ -65,7 +215,7 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
                 <tr key={rIdx} className="border-b border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
                   {row.map((cell, cIdx) => (
                     <td key={cIdx} className="p-3 border-r border-slate-200/60 dark:border-slate-800/60 last:border-r-0 text-slate-700 dark:text-slate-300">
-                      {cell.trim()}
+                      {renderInline(cell.trim(), `td-${keyIndex}-${rIdx}-${cIdx}`)}
                     </td>
                   ))}
                 </tr>
@@ -84,6 +234,15 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
         if (inCodeBlock) {
           // Flush code block
           const codeText = codeLines.join('\n');
+
+          if (codeLanguage.toLowerCase() === 'mermaid') {
+            elements.push(<MermaidDiagram key={`mermaid-${idx}`} chart={codeText} />);
+            codeLines = [];
+            inCodeBlock = false;
+            codeLanguage = '';
+            return;
+          }
+
           const blockIdx = codeBlockCount++;
           elements.push(
             <div key={`code-${idx}`} className="my-6 rounded-xl overflow-hidden border border-slate-800 bg-[#0d1117] shadow-xl text-xs font-mono">
@@ -130,6 +289,8 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
 
       // Handle Markdown Tables
       if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        flushCallout(idx);
+        flushBlockquote(idx);
         inTable = true;
         const cells = line.trim().slice(1, -1).split('|');
         tableRows.push(cells);
@@ -138,38 +299,35 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
         flushTable(idx);
       }
 
-      // GFM Callout Blocks (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING])
-      if (line.startsWith('> [!')) {
-        const calloutType = line.match(/> \[!(NOTE|TIP|IMPORTANT|WARNING)\]/i)?.[1]?.toUpperCase();
-        let borderClass = 'border-blue-500 bg-blue-500/10 text-blue-900 dark:text-blue-200';
-        let icon = <Info className="w-4 h-4 text-blue-500 shrink-0" />;
-
-        if (calloutType === 'TIP') {
-          borderClass = 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200';
-          icon = <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />;
-        } else if (calloutType === 'IMPORTANT') {
-          borderClass = 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200';
-          icon = <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />;
-        } else if (calloutType === 'WARNING') {
-          borderClass = 'border-rose-500 bg-rose-500/10 text-rose-900 dark:text-rose-200';
-          icon = <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />;
-        }
-
-        elements.push(
-          <div key={`callout-${idx}`} className={`my-4 p-4 rounded-xl border-l-4 ${borderClass} shadow-sm text-xs sm:text-sm flex items-start gap-3`}>
-            {icon}
-            <div className="font-medium leading-relaxed">{calloutType}</div>
-          </div>
-        );
+      // GFM Callout Blocks (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING]) —
+      // the type line, plus every following `>`-prefixed line, until one ends it.
+      const calloutStart = line.match(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING)\]\s*(.*)$/i);
+      if (calloutStart) {
+        flushBlockquote(idx);
+        flushCallout(idx); // a new callout starting mid-file without a blank line first
+        calloutType = calloutStart[1].toUpperCase();
+        if (calloutStart[2].trim()) calloutLines.push(calloutStart[2].trim());
         return;
       }
+      if (calloutType && line.trim().startsWith('>')) {
+        calloutLines.push(line.replace(/^>\s?/, ''));
+        return;
+      }
+      if (calloutType) flushCallout(idx);
+
+      // Plain blockquote — `> text` with no `[!TYPE]`, possibly spanning lines.
+      if (line.trim().startsWith('>')) {
+        blockquoteLines.push(line.replace(/^>\s?/, ''));
+        return;
+      }
+      if (blockquoteLines.length > 0) flushBlockquote(idx);
 
       // Headings
       if (line.startsWith('# ')) {
         const text = line.replace('# ', '').trim();
         elements.push(
           <h1 key={`h1-${idx}`} className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-6 mb-4">
-            {text}
+            {renderInline(text, `h1-${idx}`)}
           </h1>
         );
       } else if (line.startsWith('## ')) {
@@ -177,7 +335,7 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
         const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         elements.push(
           <h2 id={id} key={`h2-${idx}`} className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-10 mb-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-            {text}
+            {renderInline(text, `h2-${idx}`)}
           </h2>
         );
       } else if (line.startsWith('### ')) {
@@ -185,23 +343,34 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
         const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         elements.push(
           <h3 id={id} key={`h3-${idx}`} className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-6 mb-3">
-            {text}
+            {renderInline(text, `h3-${idx}`)}
           </h3>
         );
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
         elements.push(
           <li key={`li-${idx}`} className="ml-5 list-disc text-sm text-slate-700 dark:text-slate-300 my-1 leading-relaxed">
-            {line.substring(2)}
+            {renderInline(line.substring(2), `li-${idx}`)}
+          </li>
+        );
+      } else if (/^\d+\.\s/.test(line)) {
+        const match = line.match(/^(\d+)\.\s(.*)$/);
+        elements.push(
+          <li key={`ol-${idx}`} className="ml-5 list-decimal text-sm text-slate-700 dark:text-slate-300 my-1 leading-relaxed">
+            {renderInline(match ? match[2] : line, `ol-${idx}`)}
           </li>
         );
       } else if (line.trim() !== '') {
         elements.push(
           <p key={`p-${idx}`} className="text-sm sm:text-base text-slate-700 dark:text-slate-300 my-3 leading-relaxed">
-            {line}
+            {renderInline(line, `p-${idx}`)}
           </p>
         );
       }
     });
+
+    flushTable(lines.length);
+    flushCallout(lines.length);
+    flushBlockquote(lines.length);
 
     return elements;
   };
@@ -266,6 +435,40 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
         </div>
       </header>
 
+      {/* Assessable outcomes (plan/domains.md, CONTRIBUTING.md definition of done) */}
+      {doc.outcomes.length > 0 && (
+        <div className="mb-6 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5">
+          <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+            <Target className="w-3.5 h-3.5" />
+            <span>Outcome{doc.outcomes.length > 1 ? 's' : ''}</span>
+          </div>
+          <ul className="space-y-1.5">
+            {doc.outcomes.map((outcome, i) => (
+              <li key={i} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                {outcome}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Interactive demo (.agents/rules/demonstration_assets.md) */}
+      {doc.demo && onOpenDemo && (
+        <button
+          onClick={() => onOpenDemo(doc.demo as string)}
+          className="mb-6 w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-dashed border-cyan-500/40 bg-white dark:bg-slate-900 hover:border-cyan-500 transition text-left"
+        >
+          <div className="flex items-center gap-3">
+            <PlaySquare className="w-5 h-5 text-cyan-500 shrink-0" />
+            <div>
+              <div className="text-sm font-bold text-slate-900 dark:text-white">Open the interactive demo</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">See the outcome above, not just read about it</div>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-slate-400" />
+        </button>
+      )}
+
       {/* Main Formatted Article Content */}
       {isTranslated ? (
         <article className="prose dark:prose-invert max-w-none">
@@ -285,6 +488,28 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
             </p>
           </div>
         </div>
+      )}
+
+      {/* Dated resources (CONTRIBUTING.md definition of done: 3-5 resources, each dated) */}
+      {doc.resources.length > 0 && (
+        <section className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Resources</h2>
+          <ul className="space-y-2">
+            {doc.resources.map((r, i) => (
+              <li key={i} className="text-sm flex items-baseline gap-2">
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-cyan-600 dark:text-cyan-400 hover:underline font-medium"
+                >
+                  {r.title}
+                </a>
+                <span className="text-xs text-slate-400 font-mono">{r.date}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Previous / Next Article Navigation Footer */}

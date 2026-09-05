@@ -279,13 +279,20 @@ Tick as band units land. 78 total.
 
 | Phase | Scope | Units | Done | State |
 | :--- | :--- | ---: | ---: | :--- |
-| 0 | Foundation | — | — | not started |
-| 1 | Framework | 8 pages | 0 | blocked by 0 |
-| 2 | Track A · core craft | 33 | 0 | blocked by 1 |
-| 3 | Track B · production | 19 | 0 | blocked by 1 |
+| 0 | Foundation | — | — | done, uncommitted |
+| 1 | Framework | 8 pages | 8 | done, uncommitted |
+| 2 | Track A · core craft | 33 | 33 | **done, uncommitted — GATE met** |
+| 3 | Track B · production | 19 | 11 | in progress — domains 12 (gates Phase 4), 08, 11 landed |
 | 4 | Track C · systems | 9 | 0 | blocked by 3 |
-| 5 | Track D · leadership | 15 | 0 | blocked by 1 |
+| 5 | Track D · leadership | 15 | 0 | unblocked — not started |
 | 6 | Resources & translation | — | — | blocked by 5 |
 
-Existing material covers roughly 19 of the 78 slots, all Android, all effectively
-single-language. iOS coverage today is zero.
+**Phase 2 is complete.** All 7 domains landed in the planned order — 04 (pilot), 01, 02, 03, 07,
+05, 06. 01/02/03/04 are `fully split` (5 units each: `M[A]`, `M[i]`, `S[A]`, `S[i]`, `L[~]`); 05
+is `split M+S, shared L` (5 units); 06 and 07 are `shared + parity` (3 units each: `M[~]`, `S[~]`,
+`L[~]`). Total: 4×5 + 5 + 3 + 3 = 33 band units, 7 parity tables (one per domain) — the Phase 2
+gate's exact condition. Mid band is now complete on both platforms for every fully-split domain;
+iOS coverage was zero before this pass and now has a full unit in every domain that has one.
+One Mermaid figure and one interactive demo shipped with the domain 04 pilot; a real raster
+capture and a tagged sample repo remain explicitly deferred (see `CONTRIBUTING.md`) — neither
+can be produced honestly without an Android/iOS device or emulator attached to this environment.

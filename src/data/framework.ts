@@ -7,6 +7,7 @@
  * explicitly Phase 2+ and out of scope here.
  */
 import { Level } from '../types';
+import { docsRegistry } from './loadDocs';
 
 export interface OwnershipRow {
   dimension: string;
@@ -71,7 +72,9 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'null safety ↔ optionals · data class ↔ struct · sealed class ↔ enum with associated values · extension functions ↔ extensions · `inline` ↔ `@inlinable`.',
     breaks: "Kotlin null safety evaporates at the Java boundary where platform types are unchecked; Swift optionals are total. A Kotlin sealed hierarchy is exhaustive only within its module; a Swift enum is closed everywhere.",
-    existingArticleIds: ['oop-and-solid-principles'],
+    // The former legacy article (oop-and-solid-principles) has been re-filed: its content now
+    // lives, expanded, inside fundamentals-mid-android (see filedArticlesForDomain).
+    existingArticleIds: [],
   },
   {
     num: '02', slug: '02-platform-and-os-internals', name: 'Platform & OS internals', track: 'A',
@@ -83,7 +86,9 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'LMK ↔ Jetsam · Doze & buckets ↔ `BGTaskScheduler` · process death ↔ suspension/termination · App Links + `assetlinks.json` ↔ Universal Links + AASA.',
     breaks: 'Android background policy is documented, bucketed and queryable. iOS scheduling is a heuristic you cannot inspect or force in testing — the most common source of iOS background bugs shipped by Android-trained teams.',
-    existingArticleIds: ['android-components-and-os-internals'],
+    // The former legacy article (android-components-and-os-internals) has been re-filed across
+    // platform-mid-android and platform-senior-android (see filedArticlesForDomain).
+    existingArticleIds: [],
   },
   {
     num: '03', slug: '03-ui-and-interaction-engineering', name: 'UI & interaction engineering', track: 'A',
@@ -95,7 +100,11 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'recomposition ↔ body re-evaluation · `@Immutable` ↔ `Equatable` conformance · window size classes ↔ size classes · TalkBack ↔ VoiceOver.',
     breaks: 'Compose ships an explicit stability contract and live recomposition counts; SwiftUI has `_printChanges()` and inference. The measure-identify-prove loop is not available on iOS in the same form.',
-    existingArticleIds: ['jetpack-compose-and-adaptive-ui', 'mobile-ux-prioritization'],
+    // jetpack-compose-and-adaptive-ui fully re-filed across ui-mid-android/ui-senior-android.
+    // mobile-ux-prioritization's "Key Mobile UX Standards" section is absorbed into
+    // ui-mid-android; its other two sections still belong to domains 05 and 18 (see those
+    // DomainDef entries) so the legacy file itself is trimmed, not deleted.
+    existingArticleIds: [],
   },
   {
     num: '04', slug: '04-concurrency-and-asynchrony', name: 'Concurrency & asynchrony', track: 'A',
@@ -107,7 +116,11 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'structured concurrency ↔ `Task`/`TaskGroup` hierarchy · `Dispatchers.Main` ↔ `@MainActor` · `SupervisorJob` ↔ `TaskGroup` + per-child `try?` · `StateFlow`/`SharedFlow` ↔ `AsyncStream`/`@Observable`.',
     breaks: 'Kotlin cancellation propagates through suspension points whether you cooperate or not; Swift cancellation is a flag that does nothing unless read.',
-    existingArticleIds: ['coroutines-and-flow-concurrency'],
+    // The former legacy article (coroutines-and-flow-concurrency) has been re-filed: its
+    // content now lives split across the band-unit articles under domain 04 (see
+    // filedArticlesForDomain('04-concurrency-and-asynchrony')), not as "existing legacy
+    // material" any more.
+    existingArticleIds: [],
   },
   {
     num: '05', slug: '05-data-persistence-and-offline', name: 'Data, persistence & offline', track: 'A',
@@ -119,7 +132,9 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'Room ↔ SwiftData/GRDB · DataStore ↔ `UserDefaults` · `WorkManager` ↔ `BGTaskScheduler`.',
     breaks: '`WorkManager` guarantees eventual execution once constraints are met and survives reboot. `BGTaskScheduler` is best-effort and effectively untestable — an offline queue designed on Android assumptions silently never drains on iOS.',
-    existingArticleIds: ['mobile-ux-prioritization'],
+    // mobile-ux-prioritization's optimistic-UI section is now re-filed into
+    // data-senior-android; its remaining section still belongs to domain 18.
+    existingArticleIds: [],
   },
   {
     num: '06', slug: '06-networking-and-api-integration', name: 'Networking & API integration', track: 'A',
@@ -143,7 +158,13 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'Gradle module graph ↔ SwiftPM targets/xcframeworks · Hilt/Dagger ↔ manual DI, Factory, swift-dependencies.',
     breaks: 'Gradle enforces `:api`/`:impl` at compile time; SwiftPM visibility control is weaker. Dagger validates the whole object graph at compile time; common iOS approaches validate at runtime, or not at all.',
-    existingArticleIds: ['senior-metrics-and-qa', 'multi-module-architecture-and-routing', 'clean-architecture-code-review'],
+    // multi-module-architecture-and-routing fully re-filed into architecture-senior.
+    // senior-metrics-and-qa's "Case 3" (Hilt DI at scale) absorbed into architecture-senior;
+    // its other cases still belong to domains 09/14/17, so that file is trimmed, not deleted.
+    // clean-architecture-code-review's title doesn't match its actual content (a known thin/
+    // mismatched legacy article, see gap-analysis.md finding 09) — nothing there to re-file
+    // for this domain; architecture-mid was written fresh instead.
+    existingArticleIds: [],
   },
   {
     num: '08', slug: '08-testing-and-quality-engineering', name: 'Testing & quality engineering', track: 'B',
@@ -191,7 +212,13 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'Play staged rollout ↔ App Store phased release · Gradle build cache ↔ derived data · App Bundle ↔ App Thinning.',
     breaks: 'Play lets you halt a rollout and roll users back. App Store phased release can be paused but **not rolled back** — a shared "we can always roll back" policy is false on iOS.',
-    existingArticleIds: ['gradle-optimization-and-profiling', 'apk-compilation-and-r8-proguard', 'microbenchmark-macrobenchmark-profiles'],
+    // gradle-optimization-and-profiling fully re-filed into release-senior-android.
+    // apk-compilation-and-r8-proguard's "build pipeline" section absorbed into
+    // release-mid-android; its other two sections still belong to domains 09/10.
+    // microbenchmark-macrobenchmark-profiles' full content still belongs to domain 09 —
+    // its "CI-gating stub" is addressed conceptually in release-senior-android's staged-
+    // rollout section rather than by extracting text from that file.
+    existingArticleIds: [],
   },
   {
     num: '12', slug: '12-observability-and-reliability', name: 'Observability & reliability', track: 'B',
@@ -293,4 +320,14 @@ export const OFF_LADDER_ARTICLE_IDS = ['ai-model-routing'];
 
 export function getDomain(slug: string): DomainDef | undefined {
   return DOMAINS.find(d => d.slug === slug);
+}
+
+/** Band-unit articles actually filed against this domain (Phase 2+), independent of the legacy `existingArticleIds` list. */
+export function filedArticlesForDomain(slug: string) {
+  return docsRegistry.filter(d => d.domain === slug);
+}
+
+/** True once at least one band-unit article has been filed against this domain — used for honest coverage indicators. */
+export function isDomainFiled(slug: string): boolean {
+  return docsRegistry.some(d => d.domain === slug);
 }

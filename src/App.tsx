@@ -10,6 +10,7 @@ import { MatrixView } from './components/framework/MatrixView';
 import { LevelView } from './components/framework/LevelView';
 import { DomainView } from './components/framework/DomainView';
 import { AboutView } from './components/framework/AboutView';
+import { DemoView } from './components/framework/DemoView';
 import { docsRegistry } from './data/docsRegistry';
 import { Level } from './types';
 
@@ -18,6 +19,7 @@ export const AppContent: React.FC = () => {
   const [activeDocId, setActiveDocId] = useState<string>('senior-metrics-and-qa');
   const [activeLevel, setActiveLevel] = useState<Level>('Mid');
   const [activeDomainSlug, setActiveDomainSlug] = useState<string>('');
+  const [activeDemoSlug, setActiveDemoSlug] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -55,6 +57,10 @@ export const AppContent: React.FC = () => {
     setActiveDomainSlug(slug);
     goTo('domain');
   };
+  const handleOpenDemo = (slug: string) => {
+    setActiveDemoSlug(slug);
+    goTo('demo');
+  };
 
   const activeDoc = docsRegistry.find(d => d.id === activeDocId) || docsRegistry[0];
 
@@ -70,6 +76,8 @@ export const AppContent: React.FC = () => {
         return <DomainView slug={activeDomainSlug} onSelectDoc={handleSelectDoc} onBackToMatrix={handleOpenMatrix} />;
       case 'about':
         return <AboutView />;
+      case 'demo':
+        return <DemoView slug={activeDemoSlug} onBack={() => goTo('doc')} />;
       case 'doc':
         return (
           /* React.dev Doc-Centric Three-Column Layout */
@@ -85,6 +93,7 @@ export const AppContent: React.FC = () => {
               doc={activeDoc}
               onSelectDoc={handleSelectDoc}
               onNavigateHome={handleNavigateHome}
+              onOpenDemo={handleOpenDemo}
             />
 
             <RightSidebarTOC toc={activeDoc.toc} />

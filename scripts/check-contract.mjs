@@ -44,24 +44,89 @@ function walk(dir) {
   return out;
 }
 
+function indentOf(line) {
+  return line.length - line.trimStart().length;
+}
+
+// Mirrors src/lib/frontmatter.ts — keep the two in sync. Supports flat
+// scalars, bracketed inline arrays, block scalar lists, and block lists of
+// flat objects (one level of nesting), which is the full shape the article
+// contract in CONTRIBUTING.md uses.
 function parseFrontmatter(raw) {
   const match = raw.replace(/\r\n/g, '\n').match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!match) return null;
+  const lines = match[1].split('\n');
   const data = {};
-  match[1].split('\n').forEach(line => {
-    if (!line.trim() || line.trim().startsWith('#')) return;
-    const idx = line.indexOf(':');
-    if (idx === -1) return;
-    const key = line.slice(0, idx).trim();
-    let value = line.slice(idx + 1).trim();
-    if (value.startsWith('[') && value.endsWith(']')) {
-      const inner = value.slice(1, -1).trim();
-      data[key] = inner === '' ? [] : inner.split(',').map(v => stripQuotes(v.trim()));
-      return;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim() || line.trim().startsWith('#')) {
+      i++;
+      continue;
     }
-    value = stripQuotes(value);
-    data[key] = /^-?\d+$/.test(value) ? parseInt(value, 10) : value;
-  });
+    const idx = line.indexOf(':');
+    if (idx === -1) {
+      i++;
+      continue;
+    }
+    const key = line.slice(0, idx).trim();
+    const inlineValue = line.slice(idx + 1).trim();
+    const keyIndent = indentOf(line);
+    i++;
+
+    if (inlineValue !== '') {
+      if (inlineValue.startsWith('[') && inlineValue.endsWith(']')) {
+        const inner = inlineValue.slice(1, -1).trim();
+        data[key] = inner === '' ? [] : inner.split(',').map(v => stripQuotes(v.trim()));
+      } else {
+        const v = stripQuotes(inlineValue);
+        data[key] = /^-?\d+$/.test(v) ? parseInt(v, 10) : v;
+      }
+      continue;
+    }
+
+    const items = [];
+    while (i < lines.length) {
+      const next = lines[i];
+      if (!next.trim()) {
+        i++;
+        continue;
+      }
+      const nextIndent = indentOf(next);
+      const trimmed = next.trim();
+      if (nextIndent <= keyIndent || !trimmed.startsWith('- ')) break;
+
+      const itemIndent = nextIndent;
+      const rest = trimmed.slice(2);
+      const fieldMatch = rest.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
+
+      if (!fieldMatch) {
+        items.push(stripQuotes(rest.trim()));
+        i++;
+        continue;
+      }
+
+      const obj = {};
+      obj[fieldMatch[1]] = stripQuotes(fieldMatch[2].trim());
+      i++;
+      const continuationIndent = itemIndent + 2;
+      while (i < lines.length) {
+        const cont = lines[i];
+        if (!cont.trim()) {
+          i++;
+          continue;
+        }
+        if (indentOf(cont) < continuationIndent || cont.trim().startsWith('- ')) break;
+        const contMatch = cont.trim().match(/^([A-Za-z0-9_]+):\s*(.*)$/);
+        if (!contMatch) break;
+        obj[contMatch[1]] = stripQuotes(contMatch[2].trim());
+        i++;
+      }
+      items.push(obj);
+    }
+    data[key] = items;
+  }
   return data;
 }
 
