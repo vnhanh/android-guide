@@ -75,7 +75,7 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
           }[band];
 
           const platforms: { platform: Platform; label: string }[] =
-            bandCode === 'L'
+            bandCode === 'L' || findFiled(bandCode, 'shared')
               ? [{ platform: 'shared', label: 'Shared' }]
               : [{ platform: 'android', label: 'Android' }, { platform: 'ios', label: 'iOS' }];
 

@@ -46,7 +46,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
   const coveredCount = DOMAINS.filter(d => d.existingArticleIds.length > 0 || isDomainFiled(d.slug)).length;
 
   const popularDocs = [
-    docsRegistry.find(d => d.id === 'senior-metrics-and-qa'),
+    docsRegistry.find(d => d.id === 'code-review-senior'),
     docsRegistry.find(d => d.id === 'architecture-senior'),
     docsRegistry.find(d => d.id === 'apk-compilation-and-r8-proguard'),
     docsRegistry.find(d => d.id === 'concurrency-mid-android'),

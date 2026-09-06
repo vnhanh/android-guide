@@ -16,7 +16,7 @@ import { Level } from './types';
 
 export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('home');
-  const [activeDocId, setActiveDocId] = useState<string>('senior-metrics-and-qa');
+  const [activeDocId, setActiveDocId] = useState<string>('communication-mid');
   const [activeLevel, setActiveLevel] = useState<Level>('Mid');
   const [activeDomainSlug, setActiveDomainSlug] = useState<string>('');
   const [activeDemoSlug, setActiveDemoSlug] = useState<string>('');

@@ -5,8 +5,9 @@ import { User } from 'lucide-react';
  * Phase 1.7 — the author-profile introduction moved out of
  * `docs/01-android/01-senior-metrics-and-qa.md` (it used to be that article's
  * opening section — gap-analysis.md finding 11: "a personal CV is the first
- * article"). The Q&A case studies stay on that article; only the profile
- * moved here.
+ * article"). The Q&A case studies that used to share that article's page have
+ * since all been re-filed onto the new taxonomy (domains 07, 09, 14, 17), and
+ * the source file itself is now fully consumed and deleted.
  */
 export const AboutView: React.FC = () => {
   return (
@@ -36,9 +37,10 @@ export const AboutView: React.FC = () => {
         </ul>
 
         <div className="mt-8 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs text-slate-500 dark:text-slate-400 not-prose">
-          The interview Q&amp;A case studies that used to share this article's page still live at{' '}
-          <span className="font-mono">senior-metrics-and-qa</span>, reachable from the matrix under
-          Track A / C domains 07, 09 and 14.
+          The interview Q&amp;A case studies that used to share this article's page have all been
+          re-filed onto the matrix — reachable under Track A / C / D domains{' '}
+          <span className="font-mono">07</span>, <span className="font-mono">09</span>,{' '}
+          <span className="font-mono">14</span> and <span className="font-mono">17</span>.
         </div>
       </article>
     </main>

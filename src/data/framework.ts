@@ -160,7 +160,7 @@ export const DOMAINS: DomainDef[] = [
     breaks: 'Gradle enforces `:api`/`:impl` at compile time; SwiftPM visibility control is weaker. Dagger validates the whole object graph at compile time; common iOS approaches validate at runtime, or not at all.',
     // multi-module-architecture-and-routing fully re-filed into architecture-senior.
     // senior-metrics-and-qa's "Case 3" (Hilt DI at scale) absorbed into architecture-senior;
-    // its other cases still belong to domains 09/14/17, so that file is trimmed, not deleted.
+    // its other cases were re-filed into domains 09/14/17 and that file is now deleted.
     // clean-architecture-code-review's title doesn't match its actual content (a known thin/
     // mismatched legacy article, see gap-analysis.md finding 09) — nothing there to re-file
     // for this domain; architecture-mid was written fresh instead.
@@ -188,7 +188,15 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'frame drops ↔ hitch ratio · Perfetto ↔ Instruments · Vitals ↔ MetricKit · baseline profiles ↔ dyld order files.',
     breaks: 'An Android cold-start number and an iOS launch-time number measure different intervals against different baselines and cannot be compared directly.',
-    existingArticleIds: ['senior-metrics-and-qa', 'microbenchmark-macrobenchmark-profiles', 'apk-compilation-and-r8-proguard'],
+    // microbenchmark-macrobenchmark-profiles fully re-filed into performance-senior-android.
+    // apk-compilation-and-r8-proguard's R8-shrinking section absorbed into
+    // performance-senior-android; its ProGuard keep-rules/obfuscation section (section 3)
+    // was absorbed into security-senior (domain 10) — that source file is now fully
+    // consumed and deleted.
+    // senior-metrics-and-qa's Cases 1 and 2 absorbed into performance-mid-android and
+    // performance-senior-android; Cases 4 and 5 went to domains 14 and 17 respectively,
+    // and that source file is now fully consumed and deleted.
+    existingArticleIds: [],
   },
   {
     num: '10', slug: '10-security-and-privacy', name: 'Security & privacy', track: 'B',
@@ -200,7 +208,17 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'Keystore ↔ Keychain + Secure Enclave · network security config ↔ ATS · R8 renaming ↔ *no equivalent*.',
     breaks: 'There is no iOS counterpart to R8 identifier renaming — Android engineers overestimate what obfuscation buys, then find it absent on iOS.',
-    existingArticleIds: ['security-permissions-and-ipc', 'apk-compilation-and-r8-proguard', 'clean-architecture-code-review'],
+    // security-permissions-and-ipc fully re-filed: permission requests/data minimisation and
+    // deep-link types into security-mid; confused-deputy and App Links into security-senior.
+    // That source file is now fully consumed and deleted.
+    // apk-compilation-and-r8-proguard's remaining section (3, ProGuard keep rules &
+    // obfuscation) absorbed into security-senior's obfuscation material — the file's other
+    // two sections were already re-filed into domains 11 and 09 in the prior pass, so it is
+    // now fully consumed and deleted.
+    // clean-architecture-code-review's JWT specification section absorbed into
+    // security-senior; its risk-matrix/tech-debt content went to domains 15 and 17
+    // (see those DomainDef entries), and that file is now fully consumed and deleted.
+    existingArticleIds: [],
   },
   {
     num: '11', slug: '11-build-release-and-cicd', name: 'Build, release & CI/CD', track: 'B',
@@ -214,7 +232,8 @@ export const DOMAINS: DomainDef[] = [
     breaks: 'Play lets you halt a rollout and roll users back. App Store phased release can be paused but **not rolled back** — a shared "we can always roll back" policy is false on iOS.',
     // gradle-optimization-and-profiling fully re-filed into release-senior-android.
     // apk-compilation-and-r8-proguard's "build pipeline" section absorbed into
-    // release-mid-android; its other two sections still belong to domains 09/10.
+    // release-mid-android; its other two sections were absorbed into domains 09 and 10 in
+    // subsequent passes, and that source file is now fully consumed and deleted.
     // microbenchmark-macrobenchmark-profiles' full content still belongs to domain 09 —
     // its "CI-gating stub" is addressed conceptually in release-senior-android's staged-
     // rollout section rather than by extracting text from that file.
@@ -251,7 +270,11 @@ export const DOMAINS: DomainDef[] = [
       senior: 'Writing an ADR still useful a year later. Naming constraints, alternatives, reversibility, cost. Deciding with incomplete data. Native vs cross-platform, worked properly.',
       lead: 'How decisions get made: who decides what, when an ADR is required. One-way doors vs reversible decisions. Engineering economics: cost of delay, build vs buy.',
     },
-    existingArticleIds: ['senior-metrics-and-qa'],
+    // senior-metrics-and-qa's "Case 4" (native vs. cross-platform) absorbed into
+    // decisions-senior, expanded into a full worked decision rather than a table; its
+    // remaining Case 5 went to domain 17's Senior unit, and that source file is now
+    // fully consumed and deleted.
+    existingArticleIds: [],
   },
   {
     num: '15', slug: '15-technical-debt-and-modernisation', name: 'Technical debt & modernisation', track: 'C',
@@ -261,7 +284,15 @@ export const DOMAINS: DomainDef[] = [
       senior: 'The strangler pattern in practice. Monolith to multi-module as a sequenced migration behind flags with a tested rollback path.',
       lead: 'Debt as a portfolio: inventory with quantified impact, funding an allocation per cycle, refusing a rewrite that cannot be sequenced.',
     },
-    existingArticleIds: ['monolith-to-multimodule-migration', 'clean-architecture-code-review'],
+    // monolith-to-multimodule-migration fully re-filed into tech-debt-senior as the strangler
+    // migration playbook, expanded with strangler-pattern framing, flag-based rollback, and
+    // automated-refactoring material the source file didn't cover — that source file is now
+    // fully consumed and deleted.
+    // clean-architecture-code-review's risk-assessment matrix absorbed into tech-debt-lead as
+    // its merge-time debt-classification tool; the same material was also re-filed into
+    // domain 17's Senior unit for the review-culture treatment (how to deliver a block-merge
+    // verdict), and that source file is now fully consumed and deleted.
+    existingArticleIds: [],
   },
   {
     num: '16', slug: '16-communication-and-technical-writing', name: 'Communication & technical writing', track: 'D',
@@ -281,7 +312,11 @@ export const DOMAINS: DomainDef[] = [
       senior: 'Reviewing for design and risk rather than formatting. Deliberate mentoring: goals, feedback, sponsorship. Raising the baseline by leaving good examples.',
       lead: 'Growing seniors and future leads. Review standards and culture. Calibrating against a written ladder. Delegating the interesting work instead of keeping it.',
     },
-    existingArticleIds: ['senior-metrics-and-qa', 'clean-architecture-code-review'],
+    // senior-metrics-and-qa's "Case 5" (architectural violations under deadline pressure)
+    // and clean-architecture-code-review's risk-assessment matrix are both re-filed into
+    // code-review-senior, as the review-culture/delivery angle on the same matrix domain 15
+    // uses as its classification tool — both source files are now fully consumed and deleted.
+    existingArticleIds: [],
   },
   {
     num: '18', slug: '18-product-and-business-acumen', name: 'Product & business acumen', track: 'D',
@@ -291,7 +326,17 @@ export const DOMAINS: DomainDef[] = [
       senior: 'Shaping requirements rather than consuming them. Proposing the cheaper alternative that gets most of the value. Knowing which metric a feature moves.',
       lead: 'Connecting technical strategy to business outcomes. Arguing for platform investment in business language. Trading scope, quality and time as a peer.',
     },
-    existingArticleIds: ['mobile-ux-prioritization'],
+    // mobile-ux-prioritization's remaining section ("Strategic UX Framework for Mobile Tech
+    // Leads" — perceived performance, offline-first resilience, thumb-zone ergonomics) is now
+    // fully re-filed into product-acumen-senior's "UX prioritisation for engineers" section,
+    // not into a Lead unit here. gap-analysis.md and the source file's own banner both said
+    // Lead; domains.md's section-by-section spec (the authoritative list once a domain has
+    // one) lists this content under the Senior row as *re-filed*, and per the same precedent
+    // set resolving domain 14's identical conflict, domains.md wins. The three points are
+    // integrated as inputs to a Senior engineer's requirements-shaping and Product-negotiation
+    // practice (proposing the cheaper alternative, backed by data) rather than pasted as a
+    // standalone framework — that source file is now fully consumed and deleted.
+    existingArticleIds: [],
   },
   {
     num: '19', slug: '19-planning-estimation-and-risk', name: 'Planning, estimation & risk', track: 'D',
