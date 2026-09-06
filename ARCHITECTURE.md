@@ -54,6 +54,7 @@ graph TD
     C --> C1["13 Mobile system design"]
     C --> C2["14 Technical decision making"]
     C --> C3["15 Technical debt & modernisation"]
+    C --> C4["21 AI & LLM engineering"]
 
     D --> D1["16 Communication & technical writing"]
     D --> D2["17 Code review & mentoring"]
@@ -86,12 +87,26 @@ graph TD
 | 18 | Product & business acumen | D | agnostic |
 | 19 | Planning, estimation & risk | D | agnostic |
 | 20 | Technical leadership & influence | D | agnostic |
+| 21 | AI & LLM engineering | C · Systems | shared + per-problem notes |
 
 "Fully split" means Mid, Senior and Lead each exist as separate Android and iOS articles.
 "Split M+S, shared L" means Mid and Senior split by platform but the Lead band is one
 platform-agnostic article. "Shared + parity" means one platform-agnostic article per band plus
 a parity table naming where the platforms actually diverge. "Agnostic" (Track C/D) means the
 capability itself does not depend on platform.
+
+**Domain 01 is a documented, deliberate exception to the band-per-file shape** ("principle-based,
+cross-language" in the table above). Rather than splitting each band across Android/iOS files, it
+ships one article per programming-fundamentals principle (null safety, value vs reference
+semantics, generics, error handling, and so on), each covering Kotlin, Java, Swift, Dart and
+TypeScript side by side, with its own internal Mid/Senior/Lead sections. This does not change the
+`Platform` type (still `android | ios | shared`, unchanged everywhere else in the site) — it adds
+one additive `layout: 'principle-list'` field on domain 01's `DomainDef`
+(`src/data/framework.ts`) that switches its `DomainView` page to a flat article list instead of
+the grid, and a fourth `Band` value, `'X'`, meaning "not banded at the file level." No other
+domain uses this shape. A companion page, `docs/00-tech-lead-roadmap/roadmap.md` (no `domain` —
+it sits outside the taxonomy entirely), covers the system-level breadth a Tech Lead needs beyond
+any one domain's depth. See `CONTRIBUTING.md` and `plan/domains.md` for the full rationale.
 
 ---
 
@@ -108,11 +123,10 @@ article to the domain(s) it moves into.
 
 ## Content directory structure
 
-Content is still authored in Markdown with YAML frontmatter under `docs/`. The 14 pre-existing
-articles keep their current folders (`01-android`, `02-architecture-and-principles`,
-`03-ai-and-ux-leadership`) until Phase 2 re-files them — Phase 0/1 do not move or rename this
-content, they only stop using those three folders as primary site navigation. New band-unit
-articles land at:
+Content is authored in Markdown with YAML frontmatter under `docs/`. Every article now lives
+under a numbered domain directory; the original technology folders (`01-android`,
+`02-architecture-and-principles`, `03-ai-and-ux-leadership`) and the legacy-category navigation
+that surfaced them have been removed. Articles land at:
 
 ```
 docs/<domain-slug>/<band-unit-slug>.md          e.g. docs/04-concurrency-and-asynchrony/mid-android.md

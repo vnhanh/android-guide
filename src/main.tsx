@@ -4,6 +4,7 @@ import { AppContent } from './App';
 import { ThemeProvider } from './context/ThemeContext';
 import { I18nProvider } from './context/I18nContext';
 import { PlatformProvider } from './context/PlatformContext';
+import { FontSizeProvider } from './context/FontSizeContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <I18nProvider>
         <PlatformProvider>
-          <AppContent />
+          <FontSizeProvider>
+            <AppContent />
+          </FontSizeProvider>
         </PlatformProvider>
       </I18nProvider>
     </ThemeProvider>

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Smartphone, Building2, Sparkles, Filter, CheckCircle2, Layers } from 'lucide-react';
-import { categories, docsRegistry } from '../data/docsRegistry';
+import { ChevronDown, ChevronRight, Filter, CheckCircle2, Layers } from 'lucide-react';
+import { docsRegistry } from '../data/docsRegistry';
 import { getDomain } from '../data/framework';
 import { useI18n } from '../context/I18nContext';
 import { DocItem } from '../types';
 
-const BAND_ORDER: Record<string, number> = { M: 0, S: 1, L: 2 };
+const BAND_ORDER: Record<string, number> = { M: 0, S: 1, L: 2, X: 0 };
 
 interface LeftSidebarProps {
   activeDocId: string;
@@ -28,19 +28,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     setCollapsedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
   };
 
-  const getCategoryIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Smartphone':
-        return <Smartphone className="w-4 h-4 text-cyan-500" />;
-      case 'Building2':
-        return <Building2 className="w-4 h-4 text-indigo-500" />;
-      case 'Sparkles':
-        return <Sparkles className="w-4 h-4 text-emerald-500" />;
-      default:
-        return <Smartphone className="w-4 h-4 text-cyan-500" />;
-    }
-  };
-
   const contentNode = (
     <aside className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-[#0b0f19]/90 border-r border-slate-200/80 dark:border-slate-800/80 text-slate-800 dark:text-slate-200">
       {/* Sidebar Filter Input */}
@@ -59,8 +46,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
       {/* Categories & Docs Tree */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
-        {/* Domain-taxonomy articles (Phase 2+) — grouped by domain, band-ordered, since the
-            legacy `categories` loop below only ever covers the 3 pre-existing tech categories. */}
+        {/* Every article is filed on the domain taxonomy — grouped by domain, band-ordered.
+            The former legacy-category loop is gone; see docs/ directory names for grouping. */}
         {Array.from(new Set(docsRegistry.filter(d => d.domain).map(d => d.domain as string))).map(domainSlug => {
           const domainDocs = docsRegistry
             .filter(d => d.domain === domainSlug)
@@ -73,7 +60,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 d.tags.some(tag => tag.toLowerCase().includes(q))
               );
             })
-            .sort((a, b) => (BAND_ORDER[a.band ?? 'M'] ?? 0) - (BAND_ORDER[b.band ?? 'M'] ?? 0));
+            .sort((a, b) =>
+              (BAND_ORDER[a.band ?? 'M'] ?? 0) - (BAND_ORDER[b.band ?? 'M'] ?? 0) ||
+              a.sidebar_position - b.sidebar_position
+            );
 
           if (filterText.trim() && domainDocs.length === 0) return null;
 
@@ -111,7 +101,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         }`}
                       >
                         <span className="truncate pr-2">
-                          {doc.band} · {doc.platform} · {lang === 'vi' ? doc.title : doc.titleEn}
+                          {doc.band && doc.band !== 'X' ? `${doc.band} · ${doc.platform} · ` : ''}
+                          {lang === 'vi' ? doc.title : doc.titleEn}
                         </span>
                         {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}
                       </button>
@@ -123,70 +114,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           );
         })}
 
-        {categories.map(cat => {
-          const catDocs = docsRegistry
-            .filter(d => d.category === cat.id)
-            .filter(d => {
-              if (!filterText.trim()) return true;
-              const q = filterText.toLowerCase();
-              return (
-                d.title.toLowerCase().includes(q) ||
-                d.description.toLowerCase().includes(q) ||
-                d.tags.some(tag => tag.toLowerCase().includes(q))
-              );
-            })
-            .sort((a, b) => a.sidebar_position - b.sidebar_position);
-
-          if (filterText.trim() && catDocs.length === 0) return null;
-
-          const isCollapsed = collapsedCategories[cat.id];
-
-          return (
-            <div key={cat.id} className="space-y-1">
-              {/* Category Header Button */}
-              <button
-                onClick={() => toggleCategory(cat.id)}
-                className="w-full flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 transition"
-              >
-                <div className="flex items-center gap-2">
-                  {getCategoryIcon(cat.iconName)}
-                  <span>{lang === 'vi' ? cat.title : cat.titleEn}</span>
-                </div>
-                {isCollapsed ? (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
-              </button>
-
-              {/* Docs List */}
-              {!isCollapsed && (
-                <div className="mt-1 space-y-0.5 pl-2 border-l border-slate-200 dark:border-slate-800 ml-3">
-                  {catDocs.map(doc => {
-                    const isActive = doc.id === activeDocId;
-                    return (
-                      <button
-                        key={doc.id}
-                        onClick={() => {
-                          onSelectDoc(doc.id);
-                          if (onCloseMobile) onCloseMobile();
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between group ${
-                          isActive
-                            ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold border-r-2 border-cyan-500'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                      >
-                        <span className="truncate pr-2">{lang === 'vi' ? doc.title : doc.titleEn}</span>
-                        {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
     </aside>
   );

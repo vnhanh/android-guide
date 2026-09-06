@@ -10,7 +10,7 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [fundamentals-mid-ios, concurrency-mid-ios]
+prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, concurrency-mid-ios]
 outcomes:
   - "Justify the persistence choice against the two rejected options"
 counterpart: data-mid-android

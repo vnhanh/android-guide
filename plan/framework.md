@@ -32,7 +32,7 @@ Two corrections to the old model:
 
 | # | Domain | Track | Platform treatment |
 | ---: | :--- | :--- | :--- |
-| 01 | Programming fundamentals | A · Core craft | fully split |
+| 01 | Programming fundamentals | A · Core craft | principle-based, cross-language (see note) |
 | 02 | Platform & OS internals | A | fully split |
 | 03 | UI & interaction engineering | A | fully split |
 | 04 | Concurrency & asynchrony | A | fully split |
@@ -52,6 +52,18 @@ Two corrections to the old model:
 | 18 | Product & business acumen | D | agnostic |
 | 19 | Planning, estimation & risk | D | agnostic |
 | 20 | Technical leadership & influence | D | agnostic |
+| 21 | AI & LLM engineering | C | shared + per-problem notes |
+
+**Note on domain 01.** Unlike every other domain, Programming Fundamentals does not ship as
+separate Mid/Senior/Lead-per-platform articles. It ships as 11 principle-first articles (null
+safety, value vs reference semantics, generics, error handling, and so on), each covering Kotlin,
+Java, Swift, Dart and TypeScript side by side with its own internal Mid/Senior/Lead sections
+framed as interview prep. See `plan/domains.md`'s domain 01 entry and `CONTRIBUTING.md` for the
+frontmatter shape (`band: X`, `platform: shared`, `src/data/framework.ts`'s `layout:
+'principle-list'`). A companion page outside the domain × band × platform taxonomy entirely,
+`docs/00-tech-lead-roadmap/roadmap.md`, covers the system-level breadth a Tech Lead needs beyond
+any one domain's depth — system thinking, system design, technology evaluation, engineering
+strategy, cross-team collaboration, technical leadership.
 
 Learning-attention weight by track — a signal about where to spend deliberate effort, not a
 target and not a time budget:
@@ -73,7 +85,7 @@ performance" is not a standard.
 
 | Domain | Mid — implements | Senior — owns | Lead — directs |
 | :--- | :--- | :--- | :--- |
-| 01 Programming fundamentals | Idiomatic Kotlin/Swift; nullability, value vs reference, generics, immutability. Reads unfamiliar code and predicts behaviour. | Reasons about object lifetime and memory model — ARC cycles, GC roots, captured `this`. Uses the type system to make illegal states unrepresentable. Designs APIs others consume. | Sets the language and idiom standard: what is allowed, what is banned, reason recorded. Evaluates toolchain upgrades against migration cost. |
+| 01 Programming fundamentals | Reads unfamiliar Kotlin, Java, Swift, Dart or TypeScript and predicts its behaviour — nullability, value vs reference, generics, immutability, closed types. | Reasons about object lifetime and memory model across languages — ARC cycles, GC roots, captured `this`/`self`. Uses the type system to make illegal states unrepresentable. Designs APIs another team cannot misuse. | Turns individual judgement into an enforced team standard with a named mechanism; prices a toolchain/migration decision against its cost. Cross-language depth per principle — see the domain's own entry for the full per-principle breakdown, not a single Mid/Senior/Lead cell. |
 | 02 Platform & OS internals | Lifecycle, config change, process death, permissions, background limits. Picks the right component for a job. | Process-priority model, Doze and buckets, IPC boundaries, cold-start sequencing. Debugs OS and OEM divergence from a trace. | Owns platform-support policy — minSdk/deployment target, device matrix — and turns each annual OS change into planned work before it is an emergency. |
 | 03 UI & interaction | Screens with unidirectional state; loading/empty/error; accessibility labels and touch targets; supported size classes. | Diagnoses recomposition and layout-pass problems from a trace. Component APIs and a state model that survives beyond one screen. Owns design-system integration. | Defines UI architecture and design-system ownership across teams. Sets the accessibility standard. Arbitrates design ambition against cost as a peer. |
 | 04 Concurrency | Coroutines/async-await correctly: right dispatcher, cancellation handled, lifecycle-aware collection, no UI work off the main thread. | Structured concurrency on non-trivial flows — fan-out/fan-in, debounce, retry, backpressure. Diagnoses races, deadlocks, leaked scopes. | App-wide threading contracts: which scope owns what, what must be `Sendable`/`@MainActor`, where blocking is permitted. Drives migrations. |
@@ -98,6 +110,7 @@ performance" is not a standard.
 | 13 System design | Building blocks — layers, cache, sync, auth, transport. Designs one feature end to end, naming failure modes before coding. | Designs a complex subsystem from functional *and* non-functional requirements: offline, latency, battery, size. Presents and defends it under questioning. | Owns product-scale client architecture. Frames NFRs *before* design starts. Designs across team boundaries, for a system that outlives its implementation. |
 | 14 Decision making | Compares two or three options and says why. Escalates when out of depth rather than guessing quietly. | Writes ADRs naming constraints, alternatives, reversibility, cost. Decides with incomplete information; revisits when production disagrees. | Establishes how decisions get made — who decides what, when an ADR is required. Makes the irreversible calls. Weighs cost of delay, opportunity cost, build vs buy. |
 | 15 Technical debt | Leaves code better than found. Names debt in a ticket instead of copying the pattern once more. | Plans and executes large refactors behind flags, with a rollback path and a strangler sequence that keeps shipping features throughout. | Runs debt as a portfolio: inventory, impact in build time / crash rate / velocity, a funded allocation per cycle, and the discipline to refuse an unsequenceable rewrite. |
+| 21 AI & LLM engineering | Uses AI in proportion to how cheaply its output can be verified. Core concepts — tokens, context window, hallucination. Reads the field with a real eval set, not by chasing releases. | Designs the server side of an LLM feature: backend proxy over client-held keys, key-pool load balancing, RAG and vector retrieval, caching for cost and latency, an agent loop defended against prompt injection. | Owns the org's AI usage/data-handling policy, treats AI backend architecture as a shared platform investment, makes fine-tune-vs-prompt and BYOK-vs-proxy calls as engineering economics, and vets an AI vendor's data-use terms before a feature ships. |
 
 ### Track D · Leadership, product & delivery
 

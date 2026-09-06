@@ -1,12 +1,18 @@
 ---
 id: ai-model-routing
-title: Enterprise AI Model Routing & Classifier Architecture
-description: How AI Router systems evaluate prompt complexity using Semantic Routing and Classifiers to dynamically dispatch LLMs.
-sidebar_position: 1
-tags: [AI, LLM, System Design, Architecture]
-level: Senior
+title: AI Model Routing & Classifier Architecture (Senior, Android + iOS)
+description: How an AI router evaluates prompt complexity with semantic routing and classifiers, then dispatches to the cheapest model that can answer — a cost/latency design problem, treated as one.
+tags: [system-design, ai, llm, routing, senior]
 lang: en
 status: complete
+domain: 13-mobile-system-design
+band: S
+platform: shared
+level: Senior
+sidebar_position: 4
+prerequisites: [system-design-senior]
+outcomes:
+  - "Design a model-routing tier that keeps p95 latency and per-request cost inside a stated budget, and name what happens when the classifier is wrong"
 ---
 
 # Enterprise AI Model Routing & Classifier Architecture

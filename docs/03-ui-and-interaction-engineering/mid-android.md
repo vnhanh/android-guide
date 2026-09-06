@@ -10,7 +10,7 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-mid-android, platform-mid-android]
+prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
 outcomes:
   - "Ship a screen whose four states are all reachable in a test, and which is operable end to end with TalkBack"
 counterpart: ui-mid-ios

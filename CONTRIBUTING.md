@@ -31,7 +31,7 @@ with just these fields plus `level` and `sidebar_position`, its old ordering key
 
 ```yaml
 domain: 04-concurrency-and-asynchrony   # see plan/framework.md for the 20 domain slugs
-band: M                                  # M | S | L  (Mid | Senior | Lead)
+band: M                                  # M | S | L  (Mid | Senior | Lead) | X (see note below)
 platform: android                        # android | ios | shared
 level: Mid                               # Mid | Senior | Lead — mirrors band, human-readable
 prerequisites: [fundamentals-senior-android]  # article ids the reader should already know
@@ -52,6 +52,16 @@ samples:
 `Staff` is not a valid `level`/`band` value. It is retired from the ladder — see
 `plan/framework.md` → "Levels" for why, and mark genuinely out-of-scope topics `beyond` in prose
 rather than inventing a band for them.
+
+**Domain 01 (Programming Fundamentals) is a documented exception to the band-per-file shape.**
+It organizes by principle instead: one article per principle (null safety, generics, error
+handling, etc.), each covering Kotlin, Java, Swift, Dart and TypeScript side by side, with its own
+internal `## Mid` / `## Senior` / `## Lead` sections rather than separate per-band files. Its
+articles set `band: X` ("not banded at the file level — see the article's internal sections"),
+`platform: shared` (the file genuinely covers every language), and the corresponding `DomainDef`
+in `src/data/framework.ts` sets `layout: 'principle-list'`, which switches `DomainView` to a flat
+article list instead of the Mid/Senior/Lead × Android/iOS grid. No other domain uses this shape;
+do not set `band: X` or `layout: 'principle-list'` outside domain 01 without discussing it first.
 
 `figures` (see `.agents/rules/demonstration_assets.md`) follows the same shape:
 `figures: [{ path, alt, caption }]`, each `path` relative to `docs/<domain>/assets/<slug>/`.

@@ -1,7 +1,6 @@
 import React from 'react';
 import { BookOpen, ArrowLeft, Layers } from 'lucide-react';
 import { getDomain, filedArticlesForDomain } from '../../data/framework';
-import { docsRegistry } from '../../data/docsRegistry';
 import { Band, Platform } from '../../types';
 
 interface DomainViewProps {
@@ -25,9 +24,10 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
   const findFiled = (band: Band, platform: Platform) =>
     filed.find(d => d.band === band && d.platform === platform);
 
-  const linkedArticles = domain.existingArticleIds
-    .map(id => docsRegistry.find(d => d.id === id))
-    .filter(Boolean) as typeof docsRegistry;
+  // The band grid below surfaces one article per band+platform cell. A domain may hold more
+  // than that — a focused companion piece filed against a cell that already has its main unit —
+  // so anything the grid does not link is listed separately rather than being unreachable.
+  const extraArticles = filed.filter(d => findFiled(d.band as Band, d.platform as Platform)?.id !== d.id);
 
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-8 py-10 lg:py-14">
@@ -63,6 +63,70 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
         )}
       </header>
 
+      {domain.layout === 'principle-list' ? (
+        <>
+          {/* Principle-first domains (currently only 01): one article per principle, each with
+              its own internal Mid/Senior/Lead sections — no band x platform grid to render. */}
+          <section className="mb-10 space-y-2">
+            {[...filed]
+              .sort((a, b) => a.sidebar_position - b.sidebar_position)
+              .map(doc => (
+                <button
+                  key={doc.id}
+                  onClick={() => onSelectDoc(doc.id)}
+                  className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-cyan-500/40 transition"
+                >
+                  <div className="font-semibold text-sm text-slate-900 dark:text-white">{doc.title}</div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{doc.description}</p>
+                  {doc.outcomes[0] && (
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+                      <span className="font-semibold">Outcome:</span> {doc.outcomes[0]}
+                    </p>
+                  )}
+                </button>
+              ))}
+          </section>
+
+          <section className="mb-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-cyan-500" />
+                Cross-language cheat sheet
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                One comparison table per principle above, across Kotlin, Java, Swift, Dart and
+                TypeScript — the quick-reference version once you've read the articles.
+              </p>
+              {filed.find(d => d.id === 'fundamentals-cross-language-cheat-sheet') && (
+                <button
+                  onClick={() => onSelectDoc('fundamentals-cross-language-cheat-sheet')}
+                  className="mt-2 px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 font-semibold text-[11px] hover:bg-cyan-500/20 transition"
+                >
+                  Open the cheat sheet
+                </button>
+              )}
+            </div>
+            <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-amber-500" />
+                Tech Lead Roadmap
+              </h2>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Depth on one topic lives in each article's Lead section above. The breadth a Tech
+                Lead needs across system design, technology evaluation and cross-team collaboration
+                lives here.
+              </p>
+              <button
+                onClick={() => onSelectDoc('tech-lead-roadmap')}
+                className="mt-2 px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-semibold text-[11px] hover:bg-amber-500/20 transition"
+              >
+                Open the roadmap
+              </button>
+            </div>
+          </section>
+        </>
+      ) : (
+      <>
       {/* Band definitions */}
       <section className="mb-10 grid grid-cols-1 gap-4">
         {(['mid', 'senior', 'lead'] as const).map(band => {
@@ -131,38 +195,32 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
         </section>
       )}
 
-      {/* Linked legacy articles */}
-      <section>
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-cyan-500" />
-          Existing material touching this domain
-        </h2>
-        {linkedArticles.length === 0 ? (
-          <p className="text-sm text-slate-400">None of the 14 pre-existing articles cover this domain yet.</p>
-        ) : (
+      {/* Companion articles filed against a cell the band grid already links */}
+      {extraArticles.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-cyan-500" />
+            Also in this domain
+          </h2>
           <div className="space-y-2">
-            {linkedArticles.map(doc => (
+            {extraArticles.map(doc => (
               <button
                 key={doc.id}
                 onClick={() => onSelectDoc(doc.id)}
-                className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-cyan-500/40 transition flex items-center justify-between"
+                className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-cyan-500/40 transition"
               >
-                <div>
-                  <div className="font-semibold text-sm text-slate-900 dark:text-white">{doc.title}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    Level: {doc.level} · {doc.langStatus.en === 'complete' ? 'English complete' : 'English pending'} ·{' '}
-                    {doc.langStatus.vi === 'complete' ? 'Vietnamese complete' : 'Vietnamese pending'}
-                  </div>
+                <div className="font-semibold text-sm text-slate-900 dark:text-white">{doc.title}</div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  {doc.band} · {doc.platform} · {doc.langStatus.en === 'complete' ? 'English complete' : 'English pending'} ·{' '}
+                  {doc.langStatus.vi === 'complete' ? 'Vietnamese complete' : 'Vietnamese pending'}
                 </div>
               </button>
             ))}
           </div>
-        )}
-        <p className="mt-3 text-[11px] text-slate-400">
-          Linked as-is per <code className="px-1 rounded bg-slate-100 dark:bg-slate-800">plan/gap-analysis.md</code> —
-          re-filing this content onto the domain/band/platform schema is Phase 2, not done here.
-        </p>
-      </section>
+        </section>
+      )}
+      </>
+      )}
     </main>
   );
 };

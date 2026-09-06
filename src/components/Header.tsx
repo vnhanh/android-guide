@@ -1,8 +1,9 @@
 import React from 'react';
-import { Search, Moon, Sun, Globe, Menu, X, Layers, Sparkles, Github, Smartphone, Apple, Blend } from 'lucide-react';
+import { Search, Moon, Sun, Globe, Menu, X, Layers, Sparkles, Github, Smartphone, Apple, Blend, Minus, Plus } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
 import { usePlatform } from '../context/PlatformContext';
+import { useFontSize } from '../context/FontSizeContext';
 
 export type AppView = 'home' | 'doc' | 'framework' | 'matrix' | 'level' | 'domain' | 'about' | 'demo';
 
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { isDark, toggleTheme } = useTheme();
   const { lang, toggleLang, t } = useI18n();
   const { platform, cyclePlatform } = usePlatform();
+  const { label: fontLabel, increase: increaseFontSize, decrease: decreaseFontSize, canIncrease, canDecrease } = useFontSize();
 
   const platformIcon =
     platform === 'android' ? <Smartphone className="w-3.5 h-3.5" /> :
@@ -126,6 +128,31 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-cyan-500">{platformIcon}</span>
             <span className="capitalize hidden sm:inline">{platform}</span>
           </button>
+
+          {/* Font size control — persists like the platform/language toggles */}
+          <div className="hidden sm:flex items-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 overflow-hidden">
+            <button
+              onClick={decreaseFontSize}
+              disabled={!canDecrease}
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-30 disabled:hover:bg-transparent"
+              title="Decrease font size"
+              aria-label="Decrease font size"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="px-1.5 text-[11px] font-mono font-semibold text-cyan-600 dark:text-cyan-400 select-none" title="Font size">
+              {fontLabel}
+            </span>
+            <button
+              onClick={increaseFontSize}
+              disabled={!canIncrease}
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-30 disabled:hover:bg-transparent"
+              title="Increase font size"
+              aria-label="Increase font size"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Language Toggle */}
           <button

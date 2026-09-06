@@ -2,7 +2,10 @@ export type Level = 'Mid' | 'Senior' | 'Lead';
 export type Theme = 'dark' | 'light' | 'system';
 export type Language = 'vi' | 'en';
 export type Platform = 'android' | 'ios' | 'shared';
-export type Band = 'M' | 'S' | 'L';
+/** 'X' = not banded at the file/navigation level — used by domains (e.g. 01) whose
+ * Mid/Senior/Lead split lives inside the article as labeled sections instead of as
+ * separate per-band files. */
+export type Band = 'M' | 'S' | 'L' | 'X';
 export type Track = 'core-craft' | 'production' | 'systems' | 'leadership';
 export type ContentStatus = 'complete' | 'pending';
 
@@ -36,8 +39,8 @@ export interface DocItem {
   description: string;
   descriptionEn: string;
 
-  /** Legacy technology category, kept for the 14 not-yet-re-filed articles. */
-  category: string; // '01-android' | '02-architecture-and-principles' | '03-ai-and-ux-leadership'
+  /** The `docs/` directory the article lives in — always a numbered domain slug. */
+  category: string; // e.g. '04-concurrency-and-asynchrony'
   categoryTitle: string;
   categoryTitleEn: string;
 
@@ -72,12 +75,3 @@ export interface DocItem {
   toc: TocItem[];
 }
 
-export interface Category {
-  id: string;
-  title: string;
-  titleEn: string;
-  description: string;
-  descriptionEn: string;
-  iconName: string;
-  docCount: number;
-}

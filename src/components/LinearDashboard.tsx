@@ -1,6 +1,6 @@
 import React from 'react';
-import { Search, Sparkles, ArrowRight, Smartphone, Building2, Cpu, Grid3x3, Layers, CheckCircle2, Circle } from 'lucide-react';
-import { categories, docsRegistry } from '../data/docsRegistry';
+import { Search, Sparkles, ArrowRight, Grid3x3, Layers, CheckCircle2, Circle } from 'lucide-react';
+import { docsRegistry } from '../data/docsRegistry';
 import { DOMAINS, isDomainFiled } from '../data/framework';
 import { useI18n } from '../context/I18nContext';
 import { DocItem, Level } from '../types';
@@ -30,20 +30,8 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
 }) => {
   const { lang, t } = useI18n();
 
-  const getCategoryIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Smartphone':
-        return <Smartphone className="w-6 h-6 text-cyan-500" />;
-      case 'Building2':
-        return <Building2 className="w-6 h-6 text-indigo-500" />;
-      case 'Sparkles':
-        return <Sparkles className="w-6 h-6 text-emerald-500" />;
-      default:
-        return <Cpu className="w-6 h-6 text-blue-500" />;
-    }
-  };
 
-  const coveredCount = DOMAINS.filter(d => d.existingArticleIds.length > 0 || isDomainFiled(d.slug)).length;
+  const coveredCount = DOMAINS.filter(d => isDomainFiled(d.slug)).length;
 
   const popularDocs = [
     docsRegistry.find(d => d.id === 'code-review-senior'),
@@ -51,7 +39,8 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
     docsRegistry.find(d => d.id === 'apk-compilation-and-r8-proguard'),
     docsRegistry.find(d => d.id === 'concurrency-mid-android'),
     docsRegistry.find(d => d.id === 'release-senior-android'),
-    docsRegistry.find(d => d.id === 'fundamentals-mid-android'),
+    docsRegistry.find(d => d.id === 'fundamentals-type-system-and-null-safety'),
+    docsRegistry.find(d => d.id === 'tech-lead-roadmap'),
   ].filter(Boolean) as DocItem[];
 
   return (
@@ -103,7 +92,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
           {/* Coverage banner — honest, not flattering */}
           <div className="mt-8 max-w-2xl mx-auto p-3 rounded-xl bg-white/60 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400">
             <span className="font-semibold text-slate-700 dark:text-slate-300">{coveredCount} / {DOMAINS.length}</span> domains
-            have at least legacy Android/English material linked so far — the roadmap is addressable end to end even while most cells are still empty.
+            have band-unit articles written against them.
           </div>
         </div>
       </section>
@@ -151,7 +140,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
             className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition"
           >
             <Grid3x3 className="w-4 h-4" />
-            <span>Or browse all 20 domains × Mid/Senior/Lead in the full matrix</span>
+            <span>Or browse all {DOMAINS.length} domains × Mid/Senior/Lead in the full matrix</span>
           </button>
         </div>
 
@@ -161,7 +150,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <Layers className="w-5 h-5 text-cyan-500" />
-                20 domains
+                {DOMAINS.length} domains
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Organised by competency, not technology stack. Coverage shown per domain, not flattered.
@@ -171,7 +160,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {DOMAINS.map(domain => {
-              const covered = domain.existingArticleIds.length > 0 || isDomainFiled(domain.slug);
+              const covered = isDomainFiled(domain.slug);
               return (
                 <button
                   key={domain.slug}
@@ -191,55 +180,6 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* Legacy categories — secondary browse, no longer primary nav */}
-        <div className="mb-14">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                Browse existing articles (legacy categories)
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                The 14 pre-existing articles, still organised by their original technology
-                category. Superseded by the domain taxonomy above as primary navigation — kept
-                here as a secondary way to browse until Phase 2 re-files them.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {categories.map(cat => (
-              <div
-                key={cat.id}
-                className="group relative p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 transition-all shadow-sm flex flex-col justify-between"
-              >
-                <div>
-                  <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center mb-3">
-                    {getCategoryIcon(cat.iconName)}
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    {lang === 'vi' ? cat.title : cat.titleEn}
-                  </h3>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-cyan-600 dark:text-cyan-400">
-                    {cat.docCount} {cat.docCount === 1 ? 'article' : 'articles'}
-                  </span>
-                  <button
-                    onClick={() => {
-                      const firstDoc = docsRegistry.find(d => d.category === cat.id);
-                      if (firstDoc) onSelectDoc(firstDoc.id);
-                    }}
-                    className="flex items-center gap-1 font-medium text-slate-500 dark:text-slate-400 group-hover:text-cyan-500 transition-colors"
-                  >
-                    <span>Browse</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

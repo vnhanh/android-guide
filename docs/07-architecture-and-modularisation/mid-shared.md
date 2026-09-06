@@ -10,7 +10,7 @@ band: M
 platform: shared
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-senior-android, fundamentals-senior-ios, ui-mid-android, ui-mid-ios]
+prerequisites: [fundamentals-generics-and-variance, fundamentals-memory-management, ui-mid-android, ui-mid-ios]
 outcomes:
   - "Add a feature to an existing codebase without adding a single new architectural exception"
 resources:

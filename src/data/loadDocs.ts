@@ -1,6 +1,6 @@
 import { parseFrontmatter } from '../lib/frontmatter';
 import { slugifyHeading } from '../lib/slug';
-import { Category, ContentStatus, DocItem, Language, Level, TocItem } from '../types';
+import { ContentStatus, DocItem, Language, Level, TocItem } from '../types';
 
 /**
  * Build-time markdown loader — Phase 0.2 / 0.4.
@@ -25,29 +25,19 @@ const rawModules = import.meta.glob('/docs/**/*.md', {
   import: 'default',
 }) as Record<string, string>;
 
-const LEGACY_CATEGORY_TITLES: Record<string, { title: string; titleEn: string; description: string; descriptionEn: string; iconName: string }> = {
-  '01-android': {
-    title: 'Android Stack',
-    titleEn: 'Android Stack',
-    description: 'Kotlin 2.x, Jetpack Compose, Coroutines & Flow, Multi-Module Architecture, Gradle Profiling, Micro/Macrobenchmarks, R8/ProGuard.',
-    descriptionEn: 'Kotlin 2.x, Jetpack Compose, Coroutines & Flow, Multi-Module Architecture, Gradle Profiling, Micro/Macrobenchmarks, R8/ProGuard.',
-    iconName: 'Smartphone',
-  },
-  '02-architecture-and-principles': {
-    title: 'Architecture & Principles',
-    titleEn: 'Architecture & Principles',
-    description: 'OOP 4 Pillars, SOLID Principles, Clean Architecture Enforcement, Code Review Risk Matrix & Tech Debt Mentorship.',
-    descriptionEn: 'OOP 4 Pillars, SOLID Principles, Clean Architecture Enforcement, Code Review Risk Matrix & Tech Debt Mentorship.',
-    iconName: 'Building2',
-  },
-  '03-ai-and-ux-leadership': {
-    title: 'AI & Mobile UX Leadership',
-    titleEn: 'AI & Mobile UX Leadership',
-    description: 'On-device / edge AI notes and mobile UX prioritization frameworks. Slated to leave the primary ladder in Phase 2 (see plan/gap-analysis.md).',
-    descriptionEn: 'On-device / edge AI notes and mobile UX prioritization frameworks. Slated to leave the primary ladder in Phase 2 (see plan/gap-analysis.md).',
-    iconName: 'Sparkles',
-  },
-};
+/**
+ * Human-readable label for a `docs/<dir>/` directory, derived from the directory
+ * name itself (`13-mobile-system-design` -> `Mobile system design`). Replaces the
+ * old hand-maintained legacy-category table: every article now lives under a
+ * numbered domain directory, so the directory name *is* the category name and a
+ * second source of truth for it is not needed.
+ */
+function humaniseCategory(dir: string): string {
+  const words = dir.replace(/^\d+-/, '').split('-');
+  if (words.length === 0) return dir;
+  const [first, ...rest] = words;
+  return [first.charAt(0).toUpperCase() + first.slice(1), ...rest].join(' ');
+}
 
 function extractToc(body: string): TocItem[] {
   const toc: TocItem[] = [];
@@ -113,13 +103,7 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
     ? 'complete'
     : 'pending';
 
-  const legacyCategory = LEGACY_CATEGORY_TITLES[primary.category] ?? {
-    title: primary.category,
-    titleEn: primary.category,
-    description: '',
-    descriptionEn: '',
-    iconName: 'Smartphone',
-  };
+  const categoryTitle = humaniseCategory(primary.category);
 
   const tags = Array.isArray(primary.data.tags) ? (primary.data.tags as string[]) : [];
   const title = String(primary.data.title ?? id);
@@ -166,8 +150,8 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
     description,
     descriptionEn: description,
     category: primary.category,
-    categoryTitle: legacyCategory.title,
-    categoryTitleEn: legacyCategory.titleEn,
+    categoryTitle,
+    categoryTitleEn: categoryTitle,
     sidebar_position: primary.sidebar_position,
     tags,
     level,
@@ -196,16 +180,6 @@ export const docsRegistry: DocItem[] = Array.from(filesById.entries())
     if (a.category !== b.category) return a.category.localeCompare(b.category);
     return a.sidebar_position - b.sidebar_position;
   });
-
-export const categories: Category[] = Object.entries(LEGACY_CATEGORY_TITLES).map(([id, meta]) => ({
-  id,
-  title: meta.title,
-  titleEn: meta.titleEn,
-  description: meta.description,
-  descriptionEn: meta.descriptionEn,
-  iconName: meta.iconName,
-  docCount: docsRegistry.filter(d => d.category === id).length,
-}));
 
 export function findDoc(id: string): DocItem | undefined {
   return docsRegistry.find(d => d.id === id);

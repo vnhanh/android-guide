@@ -16,33 +16,67 @@ Legend: `M`/`S`/`L` = band · `[A]` Android `[i]` iOS `[~]` shared · **new** / 
 
 ## Track A · Core craft
 
-### 01 · Programming fundamentals — fully split, 5 units
-Prereq: none, this is the root · Unlocks: 04, 07, 03 · Existing: OOP & SOLID, re-levelled Senior→Mid
+### 01 · Programming fundamentals — principle-based, cross-language, 11 units
+Prereq: none, this is the root · Unlocks: 04, 07, 03 · Existing: fully re-filed onto a new shape (see below)
 
-| Unit | Sections | Outcome |
-| :--- | :--- | :--- |
-| `M` `[A]` *re-filed* | Kotlin type system & null safety incl. where it stops being safe · collections vs sequences · data classes, equality, copy · OOP & SOLID in real mobile code · scope functions and their readability cost | Read an unfamiliar Kotlin file and predict its behaviour — including nullability at a Java boundary — before running it |
-| `M` `[i]` **new** | Optionals & unwrapping discipline · value vs reference: struct, class, COW · protocols & generics · OOP & SOLID in Swift idiom · `throws` vs `Result` | Predict whether a mutation is visible to another holder of the same value, and say why |
-| `S` `[A]` **new** | Generics & variance (`in`/`out`) · `inline`, `reified`, cost of abstraction · JVM memory model, lifetime, GC roots · designing an API other teams consume | Design a library-quality API and justify each signature against how it will be misused |
-| `S` `[i]` **new** | ARC, retain cycles, lifetime · protocol-oriented design; existential vs generic dispatch · `some` vs `any` · Swift API Design Guidelines | Find a retain cycle by reading the code, not by waiting for the memory graph debugger |
-| `L` `[~]` **new** | Language & idiom standard: allowed, banned, reason recorded · toolchain upgrade policy priced against migration · making a ban stick — lint rule, convention, or codemod | Write the idiom standard and name the enforcement mechanism for each rule. A rule with no mechanism is a preference. |
+**This domain does not use the band-per-file shape the rest of this document describes.** Rather
+than splitting Mid/Senior/Lead across separate Android/iOS articles, it ships one article per
+*principle*, each covering Kotlin, Java, Swift, Dart and TypeScript/React Native side by side,
+with its own internal `## Mid` / `## Senior` / `## Lead` sections (a Lead section only where a
+genuine Lead-level angle exists for that principle) framed as interview prep throughout. This
+generalizes the interview-prep voice the old `mid-android-java-vs-kotlin.md`/
+`mid-ios-objc-vs-swift.md` articles already used (kept, lightly updated, as supplementary
+"why this language" reads) to the whole domain. A companion page outside this domain's taxonomy,
+`docs/00-tech-lead-roadmap/roadmap.md`, covers the system-level breadth (backend/frontend/mobile/
+infra literacy, system design, technology evaluation, cross-team collaboration) a Tech Lead needs
+beyond any single principle's depth — each `## Lead` section below points to it in prose.
 
-**Parity:** null safety ↔ optionals · data class ↔ struct · sealed class ↔ enum with associated values · extension functions ↔ extensions · `inline` ↔ `@inlinable`.
-*Breaks:* Kotlin null safety evaporates at the Java boundary where platform types are unchecked; Swift optionals are total. A Kotlin sealed hierarchy is exhaustive only within its module; a Swift enum is closed everywhere.
+| # | Article | Principle | Has `## Lead`? |
+| :--- | :--- | :--- | :--- |
+| 1 | `type-system-and-null-safety.md` | Null safety / optionals | yes |
+| 2 | `value-vs-reference-semantics.md` | Struct/class, copy-on-write, mutability | no |
+| 3 | `data-modeling-equality-and-immutability.md` | Value objects, generated equality, copy-with-change | no |
+| 4 | `collections-and-functional-operations.md` | Eager vs lazy evaluation, map/filter/reduce | no |
+| 5 | `error-handling-models.md` | Exceptions, typed Result, closed failure cases | yes |
+| 6 | `generics-and-variance.md` | `in`/`out`, wildcards, protocols & generics | no |
+| 7 | `pattern-matching-and-sealed-types.md` | Closed hierarchies, exhaustive matching | no |
+| 8 | `oop-and-solid-in-practice.md` | OOP pillars, SOLID, API misuse-proofing | yes |
+| 9 | `memory-management.md` | Traced GC vs ARC, what actually leaks | yes |
+| 10 | `language-idioms-and-chaining.md` | Fluent chaining, extending types you don't own, idiom enforcement | yes |
+| 11 | `cross-language-cheat-sheet.md` | Capstone: one comparison table per principle above, pure reference | n/a |
 
-### 02 · Platform & OS internals — fully split, 5 units
-Prereq: 01 `M` · Unlocks: 04, 09, 12 · Existing: Android components & OS constraints, split
+**Parity:** every principle article carries its own cross-language comparison table (the
+`plan/domains.md`-wide convention below still applies, just per-article instead of per-domain);
+`cross-language-cheat-sheet.md` is the single-page summary of all of them.
+*Breaks:* stated per article rather than once for the whole domain — e.g. Kotlin null safety
+evaporates at an unannotated Java boundary while Swift optionals are total; Java's `record` has no
+generated copy-with-change the way Kotlin's `data class.copy()` does; three of five languages
+(Kotlin, Dart, TypeScript) converged independently on the literal keywords `in`/`out` for variance
+while Java uses use-site wildcards instead.
 
-| Unit | Sections | Outcome |
-| :--- | :--- | :--- |
-| `M` `[A]` *re-filed* | Lifecycle & config change · process death and state restoration · choosing a background mechanism (`WorkManager` vs foreground service vs scoped coroutine) · runtime permissions and denial flows · intents, deep links, the manifest as an API surface | Given a background task with stated constraints, pick the right component and defend it against the two you rejected |
-| `M` `[i]` **new** | App & scene lifecycle · background modes and `BGTaskScheduler` · suspension, termination, state restoration · permission prompts and the one-shot problem · URL schemes & Universal Links | Explain why a background refresh that works in the simulator may never run on a real device |
-| `S` `[A]` *re-filed ×2* | `Service` as a priority signal to the LMK · Doze, standby buckets, restriction tiers · Binder, IPC boundaries and their cost · cold/warm/hot start sequencing · OEM divergence and how to learn of it before users do | Diagnose why a process is being killed in the field, from a trace and Vitals rather than a reproduction |
-| `S` `[i]` **new** | Jetsam and hard per-app memory limits · watchdog termination and how it hides in crash reports · XPC, extensions and their separate budgets · launch: dyld, prewarming, pre-`main` cost · iOS version divergence | Read an `0x8badf00d` termination and say which of the three plausible causes it is |
-| `L` `[~]` **new** | Platform-support policy priced in reachable users vs engineering cost · turning the annual OS release into planned work months ahead · deprecation cadence · what the device matrix actually costs | Write the support policy with the numbers behind it: which users are dropped, what that is worth, what engineering time it buys back |
+### 02 · Platform & OS internals — principle-based, cross-platform, 5 units
+Prereq: 01 · Unlocks: 04, 09, 12 · Existing: fully re-filed onto the principle-first shape (see below)
 
-**Parity:** LMK ↔ Jetsam · Doze & buckets ↔ `BGTaskScheduler` · process death ↔ suspension/termination · App Links + `assetlinks.json` ↔ Universal Links + AASA.
-*Breaks:* Android background policy is documented, bucketed and queryable. iOS scheduling is a heuristic you cannot inspect, force in testing, or reason about from first principles. The Android instinct to "check what the OS decided" has no iOS counterpart — the most common source of iOS background bugs shipped by Android-trained teams.
+Like domain 01, this domain does not use the band-per-file shape. It ships one article per
+principle, each covering **Android, iOS and Flutter** side by side (platform, not programming
+language, is the comparison axis here — this domain is about OS mechanisms), with internal
+`## Mid`/`## Senior`/`## Lead` sections framed as interview prep.
+
+| # | Article | Principle | Has `## Lead`? |
+| :--- | :--- | :--- | :--- |
+| 1 | `process-lifecycle-and-death.md` | Config change, process death/state restoration, suspension/termination, LMK/Jetsam priority, OEM divergence | no |
+| 2 | `background-work-and-scheduling.md` | `WorkManager`/foreground-service/`BGTaskScheduler`/`workmanager`, Binder/XPC/`MethodChannel` boundary cost | no |
+| 3 | `permissions-and-entry-points.md` | Runtime permissions and denial flows, the one-shot iOS permission problem, manifest/URL-scheme/Universal-Link entry-point surface | no |
+| 4 | `startup-sequencing-and-diagnostics.md` | Cold/warm/hot start, `0x8badf00d` watchdog diagnosis, dyld/pre-`main`, Flutter engine-init/first-frame | no |
+| 5 | `platform-support-policy.md` | Pricing minSdk/deployment-target/minimum-Flutter-version changes, the annual OS release as planned work, deprecation cadence | yes (Lead-only article) |
+
+**Parity:** every principle article carries its own Android/iOS/Flutter comparison table instead
+of one domain-wide table.
+*Breaks:* stated per article — e.g. Android's LMK reasons about whole-system memory while iOS's
+Jetsam enforces a hard per-app ceiling regardless of system pressure; `WorkManager` guarantees
+eventual execution while `BGTaskScheduler` guarantees only an attempt might be made, and Flutter's
+`workmanager` package inherits whichever guarantee the host platform actually has, which its
+uniform API can hide from an engineer who has only tested on Android.
 
 ### 03 · UI & interaction engineering — fully split, 5 units
 Prereq: 01 `M`, 02 `M` · Unlocks: 09, 07 · Existing: Compose state & adaptive UI (split), UX standards
@@ -210,6 +244,19 @@ Prereq: 07 `S`, 19 `S`, 18 `S` · Existing: monolith→multi-module playbook, ri
 | `M` **new** | Leaving code better than found, at a scale that fits the PR · naming debt in a ticket rather than copying the pattern once more | File a debt ticket a stranger could pick up, including why it matters and roughly what it costs |
 | `S` *re-filed* | The strangler pattern in practice · monolith to multi-module as a sequenced migration · migrating behind flags with a tested rollback path · shipping features throughout, the actual hard part · large-scale automated refactoring | Run a migration with no big-bang merge, abandonable at any point without leaving the codebase worse |
 | `L` *re-filed* | Debt as a portfolio: inventory with quantified impact · funding an allocation per cycle and defending it when the quarter gets tight · the risk assessment matrix for review and merge decisions · refusing a rewrite that cannot be sequenced | Present the inventory to a non-engineer with impact in their units — build minutes, crash rate, velocity — and get the allocation funded |
+
+### 21 · AI & LLM engineering — shared + per-problem notes, 7 units
+Prereq: none (Mid), 13 `S` (Senior, for the system-design method the deep dives build on) · Existing: none — new domain
+
+| Unit | Sections | Outcome |
+| :--- | :--- | :--- |
+| `M` **new** | Working AI into the ticket workflow at the right stages, proportional to how cheaply output can be verified · core concepts — tokens, context window, hallucination · tracking the field and evaluating a new model against your own eval set, not marketing benchmarks | Given a new ticket, name which stage of the workflow AI helps at, explain how the model turns a prompt into an answer, and name the eval you'd run before trusting a new model |
+| `S` **new**, core + 4 per-problem notes | Core: the shape of a production LLM feature end to end. Per-problem: **backend proxy vs. client-held keys, key-pool load balancing & streaming** · **RAG pipeline & vector-store principles, evaluated at the system level** · **caching, client-side de-duplication & AI memory** · **LoRA fine-tuning, the ReAct agent loop & prompt-injection defence** | Design the server-side architecture for a new AI feature end to end, and name which per-problem note it depends on |
+| `L` **new** | The org's AI usage/data-handling policy · AI backend architecture as a shared platform investment · fine-tune-vs-prompt and BYOK-vs-proxy as engineering economics per product line · vetting an AI vendor's data-use terms before a feature ships | Write the AI usage policy before an incident forces one into existence, and decide — with a stated reason — whether the next AI feature joins a shared platform |
+
+**Cross-platform:** no parity table — this domain is server- and architecture-facing; a mobile SDK
+divergence that actually matters (e.g. consuming SSE on Android vs iOS) is noted inline in the
+relevant per-problem note rather than tracked as a platform split.
 
 ---
 

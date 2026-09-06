@@ -10,7 +10,7 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [platform-senior-android, ui-mid-android]
+prerequisites: [platform-process-lifecycle-and-death, platform-startup-sequencing-and-diagnostics, ui-mid-android]
 outcomes:
   - "Identify the cause of a janky screen with a profiler, in one sentence naming the frame-budget overrun"
 counterpart: performance-mid-ios

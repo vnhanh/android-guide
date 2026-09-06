@@ -10,7 +10,7 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-senior-android, platform-mid-android]
+prerequisites: [fundamentals-generics-and-variance, fundamentals-memory-management, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
 outcomes:
   - "Write a screen whose in-flight work stops when the screen goes away, and demonstrate it stopping"
 counterpart: concurrency-mid-ios

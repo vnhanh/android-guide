@@ -10,7 +10,7 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [fundamentals-senior-ios, platform-mid-ios]
+prerequisites: [fundamentals-generics-and-variance, fundamentals-memory-management, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
 outcomes:
   - "Write a screen whose in-flight work stops when the screen goes away, and demonstrate it stopping"
   - "Explain why a Task that never checks isCancelled keeps running after the view disappears"

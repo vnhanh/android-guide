@@ -57,38 +57,40 @@ export interface DomainDef {
   matrix: { mid: string; senior: string; lead: string };
   parity?: string;
   breaks?: string;
-  /** ids into docsRegistry that already touch this domain, per gap-analysis.md */
-  existingArticleIds: string[];
+  /** 'principle-list': the domain organizes by principle (one article each, with its own
+   * internal Mid/Senior/Lead sections) instead of the Mid/Senior/Lead x Android/iOS grid.
+   * Defaults to the grid when absent — every domain except 01 is unaffected. */
+  layout?: 'principle-list';
 }
 
 export const DOMAINS: DomainDef[] = [
   {
     num: '01', slug: '01-programming-fundamentals', name: 'Programming fundamentals', track: 'A',
-    platformTreatment: 'fully split',
+    platformTreatment: 'principle-based, cross-language',
+    layout: 'principle-list',
     matrix: {
-      mid: 'Idiomatic Kotlin/Swift; nullability, value vs reference, generics, immutability. Reads unfamiliar code and predicts behaviour.',
-      senior: 'Reasons about object lifetime and memory model — ARC cycles, GC roots, captured `this`. Uses the type system to make illegal states unrepresentable. Designs APIs others consume.',
-      lead: 'Sets the language and idiom standard: what is allowed, what is banned, reason recorded. Evaluates toolchain upgrades against migration cost.',
+      mid: 'Reads unfamiliar Kotlin, Java, Swift, Dart or TypeScript and predicts its behaviour — nullability, value vs reference, generics, immutability, closed types.',
+      senior: 'Reasons about object lifetime and memory model across languages — ARC cycles, GC roots, captured `this`/`self` — and designs APIs another team cannot misuse.',
+      lead: 'Turns individual judgement (idiom choices, API shape) into an enforced team standard with a named mechanism, and prices a toolchain/migration decision against its cost.',
     },
-    parity: 'null safety ↔ optionals · data class ↔ struct · sealed class ↔ enum with associated values · extension functions ↔ extensions · `inline` ↔ `@inlinable`.',
-    breaks: "Kotlin null safety evaporates at the Java boundary where platform types are unchecked; Swift optionals are total. A Kotlin sealed hierarchy is exhaustive only within its module; a Swift enum is closed everywhere.",
-    // The former legacy article (oop-and-solid-principles) has been re-filed: its content now
-    // lives, expanded, inside fundamentals-mid-android (see filedArticlesForDomain).
-    existingArticleIds: [],
+    parity: 'One article per principle (null safety, value vs reference semantics, generics, error handling, pattern matching, OOP/SOLID, memory management, collections, idioms) — see the cross-language cheat sheet for the full comparison table across Kotlin, Java, Swift, Dart and TypeScript.',
+    breaks: 'Each principle article states its own cross-language "breaks" where the parity is not exact (e.g. Kotlin null safety evaporates at an unannotated Java boundary; Swift optionals are total) rather than one domain-wide table.',
+    // Re-filed onto the new principle-first structure — see docs/01-programming-fundamentals/
+    // and plan/domains.md for the full mapping from the old level x platform articles.
   },
   {
     num: '02', slug: '02-platform-and-os-internals', name: 'Platform & OS internals', track: 'A',
-    platformTreatment: 'fully split',
+    platformTreatment: 'principle-based, cross-platform',
+    layout: 'principle-list',
     matrix: {
-      mid: 'Lifecycle, config change, process death, permissions, background limits. Picks the right component for a job.',
-      senior: 'Process-priority model, Doze and buckets, IPC boundaries, cold-start sequencing. Debugs OS and OEM divergence from a trace.',
-      lead: 'Owns platform-support policy — minSdk/deployment target, device matrix — and turns each annual OS change into planned work before it is an emergency.',
+      mid: 'Reads lifecycle, process death, background work and permission flows correctly on Android, iOS or Flutter, and picks the right mechanism for a stated constraint.',
+      senior: 'Reasons about process priority and memory-pressure killers, IPC/extension boundary costs, and diagnoses a field kill or a watchdog crash from a trace, on any of the three platforms.',
+      lead: 'Owns platform-support policy — minSdk/deployment target/minimum Flutter version — and turns each annual OS change into planned work before it is an emergency.',
     },
-    parity: 'LMK ↔ Jetsam · Doze & buckets ↔ `BGTaskScheduler` · process death ↔ suspension/termination · App Links + `assetlinks.json` ↔ Universal Links + AASA.',
-    breaks: 'Android background policy is documented, bucketed and queryable. iOS scheduling is a heuristic you cannot inspect or force in testing — the most common source of iOS background bugs shipped by Android-trained teams.',
-    // The former legacy article (android-components-and-os-internals) has been re-filed across
-    // platform-mid-android and platform-senior-android (see filedArticlesForDomain).
-    existingArticleIds: [],
+    parity: 'One article per principle (process lifecycle & death, background work & scheduling, permissions & entry points, startup sequencing & diagnostics, platform-support policy) — each carries its own Android/iOS/Flutter comparison table.',
+    breaks: 'Each principle article states its own cross-platform "breaks" where the parity is not exact (e.g. Android\'s LMK reasons about whole-system memory while iOS\'s Jetsam enforces a hard per-app ceiling regardless of system pressure) rather than one domain-wide table.',
+    // Re-filed onto the principle-first structure — see docs/02-platform-and-os-internals/ and
+    // plan/domains.md for the full mapping from the old level x platform articles.
   },
   {
     num: '03', slug: '03-ui-and-interaction-engineering', name: 'UI & interaction engineering', track: 'A',
@@ -104,7 +106,6 @@ export const DOMAINS: DomainDef[] = [
     // mobile-ux-prioritization's "Key Mobile UX Standards" section is absorbed into
     // ui-mid-android; its other two sections still belong to domains 05 and 18 (see those
     // DomainDef entries) so the legacy file itself is trimmed, not deleted.
-    existingArticleIds: [],
   },
   {
     num: '04', slug: '04-concurrency-and-asynchrony', name: 'Concurrency & asynchrony', track: 'A',
@@ -120,7 +121,6 @@ export const DOMAINS: DomainDef[] = [
     // content now lives split across the band-unit articles under domain 04 (see
     // filedArticlesForDomain('04-concurrency-and-asynchrony')), not as "existing legacy
     // material" any more.
-    existingArticleIds: [],
   },
   {
     num: '05', slug: '05-data-persistence-and-offline', name: 'Data, persistence & offline', track: 'A',
@@ -134,7 +134,6 @@ export const DOMAINS: DomainDef[] = [
     breaks: '`WorkManager` guarantees eventual execution once constraints are met and survives reboot. `BGTaskScheduler` is best-effort and effectively untestable — an offline queue designed on Android assumptions silently never drains on iOS.',
     // mobile-ux-prioritization's optimistic-UI section is now re-filed into
     // data-senior-android; its remaining section still belongs to domain 18.
-    existingArticleIds: [],
   },
   {
     num: '06', slug: '06-networking-and-api-integration', name: 'Networking & API integration', track: 'A',
@@ -146,7 +145,6 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'OkHttp/Retrofit ↔ `URLSession` · interceptors ↔ delegates and `URLProtocol` · network security config ↔ ATS.',
     breaks: "Android's network security config is declarative and reviewable in a diff. iOS pinning is hand-rolled in a delegate, where a mistake is invisible until certificates rotate.",
-    existingArticleIds: [],
   },
   {
     num: '07', slug: '07-architecture-and-modularisation', name: 'Architecture & modularisation', track: 'A',
@@ -164,7 +162,6 @@ export const DOMAINS: DomainDef[] = [
     // clean-architecture-code-review's title doesn't match its actual content (a known thin/
     // mismatched legacy article, see gap-analysis.md finding 09) — nothing there to re-file
     // for this domain; architecture-mid was written fresh instead.
-    existingArticleIds: [],
   },
   {
     num: '08', slug: '08-testing-and-quality-engineering', name: 'Testing & quality engineering', track: 'B',
@@ -176,7 +173,6 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'JUnit/Turbine/Espresso ↔ XCTest/Swift Testing/XCUITest · Robolectric ↔ *no equivalent*.',
     breaks: 'Android runs a large share of platform-dependent tests on the JVM in seconds. iOS has no fast host-side simulation — equivalents run in a simulator, an order of magnitude slower.',
-    existingArticleIds: [],
   },
   {
     num: '09', slug: '09-performance-and-efficiency', name: 'Performance & efficiency', track: 'B',
@@ -196,7 +192,6 @@ export const DOMAINS: DomainDef[] = [
     // senior-metrics-and-qa's Cases 1 and 2 absorbed into performance-mid-android and
     // performance-senior-android; Cases 4 and 5 went to domains 14 and 17 respectively,
     // and that source file is now fully consumed and deleted.
-    existingArticleIds: [],
   },
   {
     num: '10', slug: '10-security-and-privacy', name: 'Security & privacy', track: 'B',
@@ -218,7 +213,6 @@ export const DOMAINS: DomainDef[] = [
     // clean-architecture-code-review's JWT specification section absorbed into
     // security-senior; its risk-matrix/tech-debt content went to domains 15 and 17
     // (see those DomainDef entries), and that file is now fully consumed and deleted.
-    existingArticleIds: [],
   },
   {
     num: '11', slug: '11-build-release-and-cicd', name: 'Build, release & CI/CD', track: 'B',
@@ -237,7 +231,6 @@ export const DOMAINS: DomainDef[] = [
     // microbenchmark-macrobenchmark-profiles' full content still belongs to domain 09 —
     // its "CI-gating stub" is addressed conceptually in release-senior-android's staged-
     // rollout section rather than by extracting text from that file.
-    existingArticleIds: [],
   },
   {
     num: '12', slug: '12-observability-and-reliability', name: 'Observability & reliability', track: 'B',
@@ -249,7 +242,6 @@ export const DOMAINS: DomainDef[] = [
     },
     parity: 'Crashlytics/Vitals ↔ MetricKit/Xcode Organizer · ProGuard mapping ↔ dSYM · ANR ↔ watchdog termination.',
     breaks: 'Vitals gives a fleet-wide ANR rate near real time with a store-visibility penalty. iOS hang rate is sampled, arrives days late, carries no store consequence.',
-    existingArticleIds: [],
   },
   {
     num: '13', slug: '13-mobile-system-design', name: 'Mobile system design', track: 'C',
@@ -260,7 +252,6 @@ export const DOMAINS: DomainDef[] = [
       lead: 'Framing NFRs before design starts. Product-scale client architecture. Designing across team boundaries, for a system that outlives its implementation.',
     },
     breaks: 'Each worked problem carries its own "on iOS this differs because…" section rather than a single parity table — divergences here are problem-specific.',
-    existingArticleIds: [],
   },
   {
     num: '14', slug: '14-technical-decision-making', name: 'Technical decision making & trade-offs', track: 'C',
@@ -274,7 +265,6 @@ export const DOMAINS: DomainDef[] = [
     // decisions-senior, expanded into a full worked decision rather than a table; its
     // remaining Case 5 went to domain 17's Senior unit, and that source file is now
     // fully consumed and deleted.
-    existingArticleIds: [],
   },
   {
     num: '15', slug: '15-technical-debt-and-modernisation', name: 'Technical debt & modernisation', track: 'C',
@@ -292,7 +282,16 @@ export const DOMAINS: DomainDef[] = [
     // its merge-time debt-classification tool; the same material was also re-filed into
     // domain 17's Senior unit for the review-culture treatment (how to deliver a block-merge
     // verdict), and that source file is now fully consumed and deleted.
-    existingArticleIds: [],
+  },
+  {
+    num: '21', slug: '21-ai-and-llm-engineering', name: 'AI & LLM engineering', track: 'C',
+    platformTreatment: 'shared + per-problem notes',
+    matrix: {
+      mid: 'Working AI into the ticket workflow at the right stages, with verification proportional to how cheaply an answer can be checked. Core concepts — tokens, context window, hallucination. Reading the field without chasing every release.',
+      senior: 'The shape of a production LLM feature: backend proxy over client-held keys, key-pool management and load balancing, RAG and vector retrieval, caching for cost and latency, and defending an agent loop against prompt injection.',
+      lead: "The org's AI usage and data-handling policy. AI backend architecture as a shared platform investment, not N bespoke integrations. Fine-tune-vs-prompt and BYOK-vs-proxy as engineering economics per product line. Vetting an AI vendor's data-use terms before a feature ships.",
+    },
+    breaks: 'No client-platform parity table — this domain is server- and architecture-facing; where a mobile SDK choice actually matters (e.g. consuming SSE on Android vs iOS) it is noted inline in the relevant problem note rather than tracked as a platform split.',
   },
   {
     num: '16', slug: '16-communication-and-technical-writing', name: 'Communication & technical writing', track: 'D',
@@ -302,7 +301,6 @@ export const DOMAINS: DomainDef[] = [
       senior: 'The design doc or RFC that actually gets acted on. Explaining a trade-off to a non-engineer without distorting it. Documenting systems well enough to hand over.',
       lead: 'The technical narrative that aligns a team. Running a design review so it converges. Delivering bad news early, accurately, with options attached.',
     },
-    existingArticleIds: [],
   },
   {
     num: '17', slug: '17-code-review-and-mentoring', name: 'Code review & mentoring', track: 'D',
@@ -316,7 +314,6 @@ export const DOMAINS: DomainDef[] = [
     // and clean-architecture-code-review's risk-assessment matrix are both re-filed into
     // code-review-senior, as the review-culture/delivery angle on the same matrix domain 15
     // uses as its classification tool — both source files are now fully consumed and deleted.
-    existingArticleIds: [],
   },
   {
     num: '18', slug: '18-product-and-business-acumen', name: 'Product & business acumen', track: 'D',
@@ -336,7 +333,6 @@ export const DOMAINS: DomainDef[] = [
     // integrated as inputs to a Senior engineer's requirements-shaping and Product-negotiation
     // practice (proposing the cheaper alternative, backed by data) rather than pasted as a
     // standalone framework — that source file is now fully consumed and deleted.
-    existingArticleIds: [],
   },
   {
     num: '19', slug: '19-planning-estimation-and-risk', name: 'Planning, estimation & risk', track: 'D',
@@ -346,7 +342,6 @@ export const DOMAINS: DomainDef[] = [
       senior: 'Decomposing into a sequenced, parallelisable plan with named risks and de-risking spikes up front. Estimating in ranges with written assumptions.',
       lead: 'Turning fuzzy problems into technical initiatives with milestones and dependencies. Maintaining a real risk register. Planning capacity across a quarter.',
     },
-    existingArticleIds: [],
   },
   {
     num: '20', slug: '20-technical-leadership-and-influence', name: 'Technical leadership & influence', track: 'D',
@@ -356,7 +351,6 @@ export const DOMAINS: DomainDef[] = [
       senior: 'Driving consensus in their area. Influencing without authority, using evidence rather than seniority. Keeping technical disagreement technical.',
       lead: 'Setting and communicating technical vision. Making the call when consensus fails. Managing up and across. Knowing where organisational constraints really sit.',
     },
-    existingArticleIds: [],
   },
 ];
 
@@ -367,7 +361,7 @@ export function getDomain(slug: string): DomainDef | undefined {
   return DOMAINS.find(d => d.slug === slug);
 }
 
-/** Band-unit articles actually filed against this domain (Phase 2+), independent of the legacy `existingArticleIds` list. */
+/** Band-unit articles actually filed against this domain. */
 export function filedArticlesForDomain(slug: string) {
   return docsRegistry.filter(d => d.domain === slug);
 }

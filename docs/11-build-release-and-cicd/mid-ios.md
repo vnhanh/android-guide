@@ -10,7 +10,7 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [fundamentals-mid-ios]
+prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice]
 outcomes:
   - "Resolve a signing failure from the error text, without deleting and regenerating everything"
 counterpart: release-mid-android

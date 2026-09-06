@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Grid3x3, CheckCircle2, Circle } from 'lucide-react';
-import { DOMAINS, TRACKS, TrackId } from '../../data/framework';
+import { DOMAINS, TRACKS, TrackId, isDomainFiled } from '../../data/framework';
 
 interface MatrixViewProps {
   onOpenDomain: (slug: string) => void;
 }
 
 const TRACK_IDS: TrackId[] = ['A', 'B', 'C', 'D'];
+const BAND_UNIT_COUNT = 81; // 78 across the original 20 domains + 3 shared-platform bands for domain 21
 
 export const MatrixView: React.FC<MatrixViewProps> = ({ onOpenDomain }) => {
   const [trackFilter, setTrackFilter] = useState<TrackId | 'all'>('all');
@@ -24,10 +25,10 @@ export const MatrixView: React.FC<MatrixViewProps> = ({ onOpenDomain }) => {
           <span>Competency matrix</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          20 domains × Mid / Senior / Lead
+          {DOMAINS.length} domains × Mid / Senior / Lead
         </h1>
         <p className="mt-3 text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
-          78 band units in total (some domains split Mid/Senior only, or share one Lead band across
+          {BAND_UNIT_COUNT} band units in total (some domains split Mid/Senior only, or share one Lead band across
           platforms). Mid cells describe implementation, Senior cells describe ownership, Lead
           cells describe direction.
         </p>
@@ -62,7 +63,7 @@ export const MatrixView: React.FC<MatrixViewProps> = ({ onOpenDomain }) => {
 
       <div className="space-y-4">
         {rows.map(domain => {
-          const covered = domain.existingArticleIds.length > 0;
+          const covered = isDomainFiled(domain.slug);
           return (
             <button
               key={domain.slug}
@@ -81,7 +82,7 @@ export const MatrixView: React.FC<MatrixViewProps> = ({ onOpenDomain }) => {
                   {covered ? (
                     <>
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="text-emerald-600 dark:text-emerald-400">Legacy coverage exists (Android, English)</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">Band-unit articles written</span>
                     </>
                   ) : (
                     <>

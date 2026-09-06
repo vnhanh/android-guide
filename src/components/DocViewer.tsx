@@ -4,6 +4,7 @@ import { DocItem } from '../types';
 import { docsRegistry } from '../data/docsRegistry';
 import { useI18n } from '../context/I18nContext';
 import { MermaidDiagram } from './MermaidDiagram';
+import { ComparisonTabs, ComparisonTabItem } from './ComparisonTabs';
 
 interface DocViewerProps {
   doc: DocItem;
@@ -12,9 +13,292 @@ interface DocViewerProps {
   onOpenDemo?: (slug: string) => void;
 }
 
+// ---- Block descriptors — the output of parsing, before any JSX is built ----
+// Splitting parsing (text -> blocks) from rendering (blocks -> JSX) in two passes
+// is what lets groupComparisonBlocks look ahead/behind across block boundaries to
+// detect a run of per-language/per-platform code blocks, without the line-by-line
+// parser needing to know anything about tab grouping itself.
+type Block =
+  | { type: 'h1'; text: string }
+  | { type: 'h2'; text: string }
+  | { type: 'h3'; text: string }
+  | { type: 'p'; text: string }
+  | { type: 'li'; text: string }
+  | { type: 'oli'; text: string }
+  | { type: 'table'; headers: string[]; rows: string[][] }
+  | { type: 'callout'; kind: string; text: string }
+  | { type: 'blockquote'; text: string }
+  | { type: 'code'; lang: string; code: string }
+  | { type: 'mermaid'; code: string };
+
+interface TabGroupBlock {
+  type: 'tabgroup';
+  items: ComparisonTabItem[];
+}
+
+type RenderableBlock = Block | TabGroupBlock;
+
+// Markdown paragraphs and list items are conventionally hard-wrapped across several
+// physical lines with no blank line between them (a real newline only starts a new
+// block after a blank line). This treats every non-blank line as its own block, so
+// wrapped prose must be rejoined into one logical line per paragraph/list item first
+// — everything inside a fenced code block, and every table, heading, blockquote or
+// callout line, passes through untouched.
+const mergeWrappedLines = (rawLines: string[]): string[] => {
+  const out: string[] = [];
+  let inFence = false;
+  let buffer: string[] = [];
+
+  const flush = () => {
+    if (buffer.length > 0) {
+      out.push(buffer.join(' '));
+      buffer = [];
+    }
+  };
+
+  for (const raw of rawLines) {
+    const trimmed = raw.trim();
+
+    if (trimmed.startsWith('```')) {
+      flush();
+      inFence = !inFence;
+      out.push(raw);
+      continue;
+    }
+    if (inFence) {
+      out.push(raw);
+      continue;
+    }
+    if (trimmed === '') {
+      flush();
+      out.push('');
+      continue;
+    }
+
+    const isTableRow = trimmed.startsWith('|') && trimmed.endsWith('|');
+    const isHeading = /^#{1,6}\s/.test(trimmed);
+    const isBlockquote = trimmed.startsWith('>');
+    const isListStart = /^(?:[-*]|\d+\.)\s/.test(trimmed);
+
+    if (isTableRow || isHeading || isBlockquote) {
+      flush();
+      out.push(raw);
+      continue;
+    }
+    if (isListStart) {
+      flush();
+      buffer = [trimmed];
+      continue;
+    }
+    // Continuation of the paragraph or list item currently in the buffer.
+    buffer.push(trimmed);
+  }
+  flush();
+  return out;
+};
+
+// Pass 1: markdown text -> typed block descriptors. Structurally the same line-by-line
+// scan the renderer used to do inline, just pushing descriptors instead of JSX.
+const parseBlocks = (markdownText: string): Block[] => {
+  const lines = mergeWrappedLines(markdownText.trim().split('\n'));
+  const blocks: Block[] = [];
+
+  let inCodeBlock = false;
+  let codeLanguage = '';
+  let codeLines: string[] = [];
+
+  let inTable = false;
+  let tableRows: string[][] = [];
+
+  // GFM callouts (`> [!NOTE]` etc.) span multiple `>`-prefixed lines; a plain
+  // `>` blockquote (no `[!TYPE]`) does too. Both are accumulated across
+  // lines and flushed as one block once a non-`>` line ends them.
+  let calloutType: string | null = null;
+  let calloutLines: string[] = [];
+  let blockquoteLines: string[] = [];
+
+  const flushCallout = () => {
+    if (!calloutType) return;
+    blocks.push({ type: 'callout', kind: calloutType, text: calloutLines.join(' ').trim() });
+    calloutType = null;
+    calloutLines = [];
+  };
+
+  const flushBlockquote = () => {
+    if (blockquoteLines.length === 0) return;
+    blocks.push({ type: 'blockquote', text: blockquoteLines.join(' ').trim() });
+    blockquoteLines = [];
+  };
+
+  const flushTable = () => {
+    if (tableRows.length === 0) return;
+    const headers = tableRows[0];
+    const body = tableRows.slice(2); // Skip separator row
+    blocks.push({ type: 'table', headers, rows: body });
+    tableRows = [];
+    inTable = false;
+  };
+
+  lines.forEach(line => {
+    // Handle code block toggle
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        const codeText = codeLines.join('\n');
+        if (codeLanguage.toLowerCase() === 'mermaid') {
+          blocks.push({ type: 'mermaid', code: codeText });
+        } else {
+          blocks.push({ type: 'code', lang: codeLanguage, code: codeText });
+        }
+        codeLines = [];
+        inCodeBlock = false;
+        codeLanguage = '';
+      } else {
+        inCodeBlock = true;
+        codeLanguage = line.replace('```', '').trim();
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      return;
+    }
+
+    // Handle Markdown Tables
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      flushCallout();
+      flushBlockquote();
+      inTable = true;
+      const cells = line.trim().slice(1, -1).split('|');
+      tableRows.push(cells);
+      return;
+    } else if (inTable) {
+      flushTable();
+    }
+
+    // GFM Callout Blocks (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING]) —
+    // the type line, plus every following `>`-prefixed line, until one ends it.
+    const calloutStart = line.match(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING)\]\s*(.*)$/i);
+    if (calloutStart) {
+      flushBlockquote();
+      flushCallout(); // a new callout starting mid-file without a blank line first
+      calloutType = calloutStart[1].toUpperCase();
+      if (calloutStart[2].trim()) calloutLines.push(calloutStart[2].trim());
+      return;
+    }
+    if (calloutType && line.trim().startsWith('>')) {
+      calloutLines.push(line.replace(/^>\s?/, ''));
+      return;
+    }
+    if (calloutType) flushCallout();
+
+    // Plain blockquote — `> text` with no `[!TYPE]`, possibly spanning lines.
+    if (line.trim().startsWith('>')) {
+      blockquoteLines.push(line.replace(/^>\s?/, ''));
+      return;
+    }
+    if (blockquoteLines.length > 0) flushBlockquote();
+
+    // Headings
+    if (line.startsWith('# ')) {
+      blocks.push({ type: 'h1', text: line.replace('# ', '').trim() });
+    } else if (line.startsWith('## ')) {
+      blocks.push({ type: 'h2', text: line.replace('## ', '').trim() });
+    } else if (line.startsWith('### ')) {
+      blocks.push({ type: 'h3', text: line.replace('### ', '').trim() });
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      blocks.push({ type: 'li', text: line.substring(2) });
+    } else if (/^\d+\.\s/.test(line)) {
+      const match = line.match(/^(\d+)\.\s(.*)$/);
+      blocks.push({ type: 'oli', text: match ? match[2] : line });
+    } else if (line.trim() !== '') {
+      blocks.push({ type: 'p', text: line });
+    }
+  });
+
+  flushTable();
+  flushCallout();
+  flushBlockquote();
+
+  return blocks;
+};
+
+// A "label" paragraph is the prose immediately introducing one language/platform's
+// code sample (e.g. "**Kotlin** has no checked/unchecked distinction..." or a full
+// multi-sentence explanation). These run anywhere from a short caption to several
+// sentences, so length is not a reliable signal — the bold lead-in combined with
+// strict adjacency to a same-run code block (no other block type interleaved,
+// enforced by groupComparisonBlocks below) is what keeps this from ever grouping
+// unrelated content.
+const isLabelParagraph = (b: Block | undefined): b is Block & { type: 'p' } =>
+  !!b && b.type === 'p' && b.text.trim().startsWith('**');
+
+// Pass 2: group a run of 2+ consecutive per-language/per-platform code blocks (each
+// optionally preceded by a short "**Kotlin.** ..." lead-in paragraph, with no other
+// block type interleaved and no two blocks sharing the same language) into a single
+// tabgroup, so the reader gets an interactive switcher instead of a stack of blocks.
+// Everything else passes through unchanged — this never touches content that isn't a
+// clean, unambiguous comparison run.
+const groupComparisonBlocks = (blocks: Block[]): RenderableBlock[] => {
+  const out: RenderableBlock[] = [];
+  let i = 0;
+
+  while (i < blocks.length) {
+    const b = blocks[i];
+
+    if (b.type === 'code') {
+      let firstLabel: string | undefined;
+      const prev = out[out.length - 1];
+      if (isLabelParagraph(prev as Block | undefined)) {
+        firstLabel = (prev as Block & { type: 'p' }).text;
+        out.pop();
+      }
+
+      const items: ComparisonTabItem[] = [{ label: firstLabel, lang: b.lang, code: b.code }];
+      const seenLangs = new Set([b.lang.toLowerCase()]);
+      let j = i + 1;
+
+      while (j < blocks.length) {
+        let label: string | undefined;
+        let k = j;
+        if (isLabelParagraph(blocks[k])) {
+          label = (blocks[k] as Block & { type: 'p' }).text;
+          k++;
+        }
+        const candidate = blocks[k];
+        if (candidate && candidate.type === 'code' && !seenLangs.has(candidate.lang.toLowerCase())) {
+          items.push({ label, lang: candidate.lang, code: candidate.code });
+          seenLangs.add(candidate.lang.toLowerCase());
+          j = k + 1;
+        } else {
+          break;
+        }
+      }
+
+      if (items.length >= 2) {
+        out.push({ type: 'tabgroup', items });
+        i = j;
+        continue;
+      }
+      // Not actually a comparison run — restore the popped label (if any) and
+      // fall through to render this single code block on its own, as before.
+      if (firstLabel !== undefined) out.push({ type: 'p', text: firstLabel });
+      out.push(b);
+      i++;
+      continue;
+    }
+
+    out.push(b);
+    i++;
+  }
+
+  return out;
+};
+
 export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNavigateHome, onOpenDemo }) => {
   const { lang, t } = useI18n();
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
+  const [preferredLang, setPreferredLang] = useState<string | null>(null);
 
   const handleCopyCode = (codeText: string, index: number) => {
     navigator.clipboard.writeText(codeText);
@@ -70,309 +354,172 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
     return nodes;
   };
 
-  // Markdown paragraphs and list items are conventionally hard-wrapped across several
-  // physical lines with no blank line between them (a real newline only starts a new
-  // block after a blank line). The per-line renderer below treats every non-blank line
-  // as its own block, so wrapped prose must be rejoined into one logical line per
-  // paragraph/list item first — everything inside a fenced code block, and every table,
-  // heading, blockquote or callout line, passes through untouched.
-  const mergeWrappedLines = (rawLines: string[]): string[] => {
-    const out: string[] = [];
-    let inFence = false;
-    let buffer: string[] = [];
+  let codeBlockCount = 0; // shared, incrementing index across standalone blocks and tabgroup items
 
-    const flush = () => {
-      if (buffer.length > 0) {
-        out.push(buffer.join(' '));
-        buffer = [];
-      }
-    };
-
-    for (const raw of rawLines) {
-      const trimmed = raw.trim();
-
-      if (trimmed.startsWith('```')) {
-        flush();
-        inFence = !inFence;
-        out.push(raw);
-        continue;
-      }
-      if (inFence) {
-        out.push(raw);
-        continue;
-      }
-      if (trimmed === '') {
-        flush();
-        out.push('');
-        continue;
-      }
-
-      const isTableRow = trimmed.startsWith('|') && trimmed.endsWith('|');
-      const isHeading = /^#{1,6}\s/.test(trimmed);
-      const isBlockquote = trimmed.startsWith('>');
-      const isListStart = /^(?:[-*]|\d+\.)\s/.test(trimmed);
-
-      if (isTableRow || isHeading || isBlockquote) {
-        flush();
-        out.push(raw);
-        continue;
-      }
-      if (isListStart) {
-        flush();
-        buffer = [trimmed];
-        continue;
-      }
-      // Continuation of the paragraph or list item currently in the buffer.
-      buffer.push(trimmed);
-    }
-    flush();
-    return out;
+  const renderCodeBlock = (lang: string, code: string, key: string) => {
+    const blockIdx = codeBlockCount++;
+    return (
+      <div key={key} className="my-6 rounded-xl overflow-hidden border border-slate-800 bg-[#0d1117] shadow-xl text-xs font-mono">
+        <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-slate-800/80 text-slate-400">
+          <span className="font-semibold uppercase tracking-wider text-[11px] text-cyan-400">
+            {lang || 'CODE'}
+          </span>
+          <button
+            onClick={() => handleCopyCode(code, blockIdx)}
+            className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] transition"
+          >
+            {copiedCodeIndex === blockIdx ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400">{t('doc.copied')}</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>{t('doc.copyCode')}</span>
+              </>
+            )}
+          </button>
+        </div>
+        <pre className="p-4 overflow-x-auto text-slate-200 leading-relaxed font-mono">
+          <code>{code}</code>
+        </pre>
+      </div>
+    );
   };
 
-  // Custom parser to format GFM Callouts and Code Blocks nicely
-  const renderFormattedMarkdown = (markdownText: string) => {
-    const lines = mergeWrappedLines(markdownText.trim().split('\n'));
-    const elements: React.ReactNode[] = [];
-
-    let inCodeBlock = false;
-    let codeLanguage = '';
-    let codeLines: string[] = [];
-    let codeBlockCount = 0;
-
-    let inTable = false;
-    let tableRows: string[][] = [];
-
-    // GFM callouts (`> [!NOTE]` etc.) span multiple `>`-prefixed lines; a plain
-    // `>` blockquote (no `[!TYPE]`) does too. Both are accumulated across
-    // lines and flushed as one block once a non-`>` line ends them.
-    let calloutType: string | null = null;
-    let calloutLines: string[] = [];
-    let blockquoteLines: string[] = [];
-
-    const flushCallout = (keyIndex: number) => {
-      if (!calloutType) return;
-      const bodyText = calloutLines.join(' ').trim();
-
-      let borderClass = 'border-blue-500 bg-blue-500/10 text-blue-900 dark:text-blue-200';
-      let icon = <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />;
-      if (calloutType === 'TIP') {
-        borderClass = 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200';
-        icon = <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />;
-      } else if (calloutType === 'IMPORTANT') {
-        borderClass = 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200';
-        icon = <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />;
-      } else if (calloutType === 'WARNING') {
-        borderClass = 'border-rose-500 bg-rose-500/10 text-rose-900 dark:text-rose-200';
-        icon = <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />;
-      }
-
-      elements.push(
-        <div key={`callout-${keyIndex}`} className={`my-4 p-4 rounded-xl border-l-4 ${borderClass} shadow-sm text-xs sm:text-sm flex items-start gap-3`}>
-          {icon}
-          <div className="leading-relaxed">
-            <div className="font-bold uppercase tracking-wide text-[11px] mb-1">{calloutType}</div>
-            {bodyText && <div>{renderInline(bodyText, `callout-${keyIndex}`)}</div>}
-          </div>
-        </div>
-      );
-      calloutType = null;
-      calloutLines = [];
-    };
-
-    const flushBlockquote = (keyIndex: number) => {
-      if (blockquoteLines.length === 0) return;
-      const bodyText = blockquoteLines.join(' ').trim();
-      elements.push(
-        <blockquote
-          key={`quote-${keyIndex}`}
-          className="my-4 pl-4 border-l-4 border-slate-300 dark:border-slate-700 text-sm sm:text-base text-slate-600 dark:text-slate-400 italic leading-relaxed"
-        >
-          {renderInline(bodyText, `quote-${keyIndex}`)}
-        </blockquote>
-      );
-      blockquoteLines = [];
-    };
-
-    const flushTable = (keyIndex: number) => {
-      if (tableRows.length === 0) return;
-      const headers = tableRows[0];
-      const body = tableRows.slice(2); // Skip separator row
-
-      elements.push(
-        <div key={`table-${keyIndex}`} className="my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold">
-                {headers.map((h, i) => (
-                  <th key={i} className="p-3 border-r border-slate-200 dark:border-slate-800 last:border-r-0">
-                    {renderInline(h.trim(), `th-${keyIndex}-${i}`)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {body.map((row, rIdx) => (
-                <tr key={rIdx} className="border-b border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
-                  {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="p-3 border-r border-slate-200/60 dark:border-slate-800/60 last:border-r-0 text-slate-700 dark:text-slate-300">
-                      {renderInline(cell.trim(), `td-${keyIndex}-${rIdx}-${cIdx}`)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-      tableRows = [];
-      inTable = false;
-    };
-
-    lines.forEach((line, idx) => {
-      // Handle code block toggle
-      if (line.startsWith('```')) {
-        if (inCodeBlock) {
-          // Flush code block
-          const codeText = codeLines.join('\n');
-
-          if (codeLanguage.toLowerCase() === 'mermaid') {
-            elements.push(<MermaidDiagram key={`mermaid-${idx}`} chart={codeText} />);
-            codeLines = [];
-            inCodeBlock = false;
-            codeLanguage = '';
-            return;
-          }
-
-          const blockIdx = codeBlockCount++;
-          elements.push(
-            <div key={`code-${idx}`} className="my-6 rounded-xl overflow-hidden border border-slate-800 bg-[#0d1117] shadow-xl text-xs font-mono">
-              <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-slate-800/80 text-slate-400">
-                <span className="font-semibold uppercase tracking-wider text-[11px] text-cyan-400">
-                  {codeLanguage || 'CODE'}
-                </span>
-                <button
-                  onClick={() => handleCopyCode(codeText, blockIdx)}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] transition"
-                >
-                  {copiedCodeIndex === blockIdx ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">{t('doc.copied')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>{t('doc.copyCode')}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-              <pre className="p-4 overflow-x-auto text-slate-200 leading-relaxed font-mono">
-                <code>{codeText}</code>
-              </pre>
-            </div>
-          );
-          codeLines = [];
-          inCodeBlock = false;
-          codeLanguage = '';
-        } else {
-          inCodeBlock = true;
-          codeLanguage = line.replace('```', '').trim();
-        }
-        return;
-      }
-
-      if (inCodeBlock) {
-        codeLines.push(line);
-        return;
-      }
-
-      // Handle Markdown Tables
-      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-        flushCallout(idx);
-        flushBlockquote(idx);
-        inTable = true;
-        const cells = line.trim().slice(1, -1).split('|');
-        tableRows.push(cells);
-        return;
-      } else if (inTable) {
-        flushTable(idx);
-      }
-
-      // GFM Callout Blocks (> [!NOTE], > [!TIP], > [!IMPORTANT], > [!WARNING]) —
-      // the type line, plus every following `>`-prefixed line, until one ends it.
-      const calloutStart = line.match(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING)\]\s*(.*)$/i);
-      if (calloutStart) {
-        flushBlockquote(idx);
-        flushCallout(idx); // a new callout starting mid-file without a blank line first
-        calloutType = calloutStart[1].toUpperCase();
-        if (calloutStart[2].trim()) calloutLines.push(calloutStart[2].trim());
-        return;
-      }
-      if (calloutType && line.trim().startsWith('>')) {
-        calloutLines.push(line.replace(/^>\s?/, ''));
-        return;
-      }
-      if (calloutType) flushCallout(idx);
-
-      // Plain blockquote — `> text` with no `[!TYPE]`, possibly spanning lines.
-      if (line.trim().startsWith('>')) {
-        blockquoteLines.push(line.replace(/^>\s?/, ''));
-        return;
-      }
-      if (blockquoteLines.length > 0) flushBlockquote(idx);
-
-      // Headings
-      if (line.startsWith('# ')) {
-        const text = line.replace('# ', '').trim();
-        elements.push(
-          <h1 key={`h1-${idx}`} className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-6 mb-4">
-            {renderInline(text, `h1-${idx}`)}
+  const renderBlock = (block: RenderableBlock, idx: number): React.ReactNode => {
+    const key = `b-${idx}`;
+    switch (block.type) {
+      case 'h1':
+        return (
+          <h1 key={key} className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-6 mb-4">
+            {renderInline(block.text, key)}
           </h1>
         );
-      } else if (line.startsWith('## ')) {
-        const text = line.replace('## ', '').trim();
-        const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        elements.push(
-          <h2 id={id} key={`h2-${idx}`} className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-10 mb-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-            {renderInline(text, `h2-${idx}`)}
+      case 'h2': {
+        const id = block.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        return (
+          <h2 id={id} key={key} className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-10 mb-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+            {renderInline(block.text, key)}
           </h2>
         );
-      } else if (line.startsWith('### ')) {
-        const text = line.replace('### ', '').trim();
-        const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        elements.push(
-          <h3 id={id} key={`h3-${idx}`} className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-6 mb-3">
-            {renderInline(text, `h3-${idx}`)}
+      }
+      case 'h3': {
+        const id = block.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        return (
+          <h3 id={id} key={key} className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-6 mb-3">
+            {renderInline(block.text, key)}
           </h3>
         );
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        elements.push(
-          <li key={`li-${idx}`} className="ml-5 list-disc text-sm text-slate-700 dark:text-slate-300 my-1 leading-relaxed">
-            {renderInline(line.substring(2), `li-${idx}`)}
+      }
+      case 'li':
+        return (
+          <li key={key} className="ml-5 list-disc text-sm text-slate-700 dark:text-slate-300 my-1 leading-relaxed">
+            {renderInline(block.text, key)}
           </li>
         );
-      } else if (/^\d+\.\s/.test(line)) {
-        const match = line.match(/^(\d+)\.\s(.*)$/);
-        elements.push(
-          <li key={`ol-${idx}`} className="ml-5 list-decimal text-sm text-slate-700 dark:text-slate-300 my-1 leading-relaxed">
-            {renderInline(match ? match[2] : line, `ol-${idx}`)}
+      case 'oli':
+        return (
+          <li key={key} className="ml-5 list-decimal text-sm text-slate-700 dark:text-slate-300 my-1 leading-relaxed">
+            {renderInline(block.text, key)}
           </li>
         );
-      } else if (line.trim() !== '') {
-        elements.push(
-          <p key={`p-${idx}`} className="text-sm sm:text-base text-slate-700 dark:text-slate-300 my-3 leading-relaxed">
-            {renderInline(line, `p-${idx}`)}
+      case 'p':
+        return (
+          <p key={key} className="text-sm sm:text-base text-slate-700 dark:text-slate-300 my-3 leading-relaxed">
+            {renderInline(block.text, key)}
           </p>
         );
+      case 'blockquote':
+        return (
+          <blockquote
+            key={key}
+            className="my-4 pl-4 border-l-4 border-slate-300 dark:border-slate-700 text-sm sm:text-base text-slate-600 dark:text-slate-400 italic leading-relaxed"
+          >
+            {renderInline(block.text, key)}
+          </blockquote>
+        );
+      case 'callout': {
+        let borderClass = 'border-blue-500 bg-blue-500/10 text-blue-900 dark:text-blue-200';
+        let icon = <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />;
+        if (block.kind === 'TIP') {
+          borderClass = 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200';
+          icon = <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />;
+        } else if (block.kind === 'IMPORTANT') {
+          borderClass = 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200';
+          icon = <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />;
+        } else if (block.kind === 'WARNING') {
+          borderClass = 'border-rose-500 bg-rose-500/10 text-rose-900 dark:text-rose-200';
+          icon = <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />;
+        }
+        return (
+          <div key={key} className={`my-4 p-4 rounded-xl border-l-4 ${borderClass} shadow-sm text-xs sm:text-sm flex items-start gap-3`}>
+            {icon}
+            <div className="leading-relaxed">
+              <div className="font-bold uppercase tracking-wide text-[11px] mb-1">{block.kind}</div>
+              {block.text && <div>{renderInline(block.text, key)}</div>}
+            </div>
+          </div>
+        );
       }
-    });
+      case 'table':
+        return (
+          <div key={key} className="my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-bold">
+                  {block.headers.map((h, i) => (
+                    <th key={i} className="p-3 border-r border-slate-200 dark:border-slate-800 last:border-r-0">
+                      {renderInline(h.trim(), `${key}-th-${i}`)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {block.rows.map((row, rIdx) => (
+                  <tr key={rIdx} className="border-b border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition">
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className="p-3 border-r border-slate-200/60 dark:border-slate-800/60 last:border-r-0 text-slate-700 dark:text-slate-300">
+                        {renderInline(cell.trim(), `${key}-td-${rIdx}-${cIdx}`)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      case 'mermaid':
+        return <MermaidDiagram key={key} chart={block.code} />;
+      case 'code':
+        return renderCodeBlock(block.lang, block.code, key);
+      case 'tabgroup': {
+        const baseCodeIndex = codeBlockCount;
+        codeBlockCount += block.items.length;
+        return (
+          <ComparisonTabs
+            key={key}
+            items={block.items}
+            renderInline={renderInline}
+            preferredLang={preferredLang}
+            onSelectLang={setPreferredLang}
+            copiedCodeIndex={copiedCodeIndex}
+            onCopyCode={handleCopyCode}
+            baseCodeIndex={baseCodeIndex}
+            copyLabel={t('doc.copyCode')}
+            copiedLabel={t('doc.copied')}
+          />
+        );
+      }
+      default:
+        return null;
+    }
+  };
 
-    flushTable(lines.length);
-    flushCallout(lines.length);
-    flushBlockquote(lines.length);
-
-    return elements;
+  const renderFormattedMarkdown = (markdownText: string) => {
+    const blocks = groupComparisonBlocks(parseBlocks(markdownText));
+    return blocks.map((block, idx) => renderBlock(block, idx));
   };
 
   // Phase 0.5: fall back on empty-after-trim, not on falsy — a whitespace-only

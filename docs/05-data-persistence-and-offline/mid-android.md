@@ -10,7 +10,7 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-mid-android, concurrency-mid-android]
+prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, concurrency-mid-android]
 outcomes:
   - "Ship a schema migration with a test that would fail if the migration were wrong"
 counterpart: data-mid-ios

@@ -10,7 +10,7 @@ band: M
 platform: shared
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-mid-android, fundamentals-mid-ios, concurrency-mid-android, concurrency-mid-ios]
+prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, concurrency-mid-android, concurrency-mid-ios]
 outcomes:
   - "Write a test that fails for the right reason — change the behaviour and watch it fail, before trusting it"
 resources:

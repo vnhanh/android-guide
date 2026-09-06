@@ -10,7 +10,7 @@ band: M
 platform: shared
 level: Mid
 sidebar_position: 1
-prerequisites: [platform-mid-android, platform-mid-ios, release-mid-android]
+prerequisites: [platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points, release-mid-android]
 outcomes:
   - "Take a crash from the dashboard to a specific line, without a local reproduction"
 resources:
