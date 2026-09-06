@@ -10,7 +10,9 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
+topic: ui-mid
+leaf: Android
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-oop-solid-kotlin, platform-process-lifecycle-android, platform-background-work-android, platform-permissions-android]
 outcomes:
   - "Ship a screen whose four states are all reachable in a test, and which is operable end to end with TalkBack"
 counterpart: ui-mid-ios
@@ -34,7 +36,7 @@ resources:
 > **Outcome.** Ship a screen whose four states — loading, empty, error, content — are all
 > reachable in a test, and which a TalkBack user can operate end to end without sighted help.
 
-## 1. Compose state, `remember`, and unidirectional data flow
+## 1. Compose state, `remember`, and unidirectional data flow {concept=ui-mid/state-management}
 
 `remember` survives recomposition but not configuration change or process death; state hoisted
 into a `ViewModel` survives both. The UDF shape that keeps a screen predictable: state flows
@@ -68,7 +70,7 @@ fun TimeoutBanner(onTimeout: () -> Unit) {
 }
 ```
 
-## 2. Four states, never three
+## 2. Four states, never three {concept=ui-mid/four-states}
 
 ```kotlin
 sealed interface ProfileUiState {
@@ -87,7 +89,7 @@ sealed interface ProfileUiState {
 > has an empty state; it just hasn't been designed yet, and a reviewer should be able to ask "what
 > does this render for zero results" and get an actual answer.
 
-## 3. Lists: keys and scroll performance
+## 3. Lists: keys and scroll performance {concept=ui-mid/list-identity}
 
 ```kotlin
 LazyColumn {
@@ -103,7 +105,7 @@ LazyColumn {
 }
 ```
 
-## 4. Accessibility: labels, touch targets, TalkBack traversal
+## 4. Accessibility: labels, touch targets, TalkBack traversal {concept=ui-mid/accessibility}
 
 ```kotlin
 IconButton(
@@ -123,7 +125,7 @@ IconButton(
 > navigating it with swipe gestures alone leaves this class of bug entirely unfound; it is not
 > visible in a sighted manual test pass at all.
 
-## 5. Theming and consuming a design system
+## 5. Theming and consuming a design system {concept=ui-mid/theming}
 
 ```kotlin
 @Composable

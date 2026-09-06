@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Copy, Check, ChevronLeft, ChevronRight, BookOpen, Clock, Tag, Award, AlertCircle, Info, Lightbulb, AlertTriangle, ShieldAlert, Languages, Target, PlaySquare, ExternalLink, Link2, HelpCircle } from 'lucide-react';
 import { DocItem, Level } from '../types';
-import { docsRegistry, conceptIndex } from '../data/docsRegistry';
+import { docsRegistry, conceptIndex, findDocByTopicLeaf } from '../data/docsRegistry';
 import { getDomainAxis } from '../data/domainAxes';
 import { getDocFlowNeighbors } from '../data/navFlow';
 import { useI18n } from '../context/I18nContext';
@@ -729,39 +729,49 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, activeAnchor, onSelec
           already exists, switching leaf jumps straight to it. */}
       {domainAxis.axis === 'platform' && (
         <div className="mb-6 flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-fit">
-          {(domainAxis.leaves ?? []).map(leaf => (
-            <button
-              key={leaf}
-              onClick={() => {
-                setPlatformLeaf(leaf as typeof platformLeaf);
-                if (counterpartDoc && counterpartDoc.platform === leaf.toLowerCase()) onSelectDoc(counterpartDoc.id);
-              }}
-              className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
-                platformLeaf === leaf
-                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              {leaf}
-            </button>
-          ))}
+          {(domainAxis.leaves ?? []).map(leaf => {
+            const sibling = doc.topic && doc.domain ? findDocByTopicLeaf(doc.domain, doc.topic, leaf) : undefined;
+            return (
+              <button
+                key={leaf}
+                onClick={() => {
+                  setPlatformLeaf(leaf as typeof platformLeaf);
+                  if (sibling) onSelectDoc(sibling.id);
+                  else if (counterpartDoc && counterpartDoc.platform === leaf.toLowerCase()) onSelectDoc(counterpartDoc.id);
+                }}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                  (doc.leaf ? doc.leaf === leaf : platformLeaf === leaf)
+                    ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {leaf}
+              </button>
+            );
+          })}
         </div>
       )}
       {domainAxis.axis === 'language' && (
         <div className="mb-6 flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-fit flex-wrap">
-          {(domainAxis.leaves ?? []).map(leaf => (
-            <button
-              key={leaf}
-              onClick={() => setLanguageLeaf(leaf as typeof languageLeaf)}
-              className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
-                languageLeaf === leaf
-                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >
-              {leaf}
-            </button>
-          ))}
+          {(domainAxis.leaves ?? []).map(leaf => {
+            const sibling = doc.topic && doc.domain ? findDocByTopicLeaf(doc.domain, doc.topic, leaf) : undefined;
+            return (
+              <button
+                key={leaf}
+                onClick={() => {
+                  setLanguageLeaf(leaf as typeof languageLeaf);
+                  if (sibling) onSelectDoc(sibling.id);
+                }}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                  (doc.leaf ? doc.leaf === leaf : languageLeaf === leaf)
+                    ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {leaf}
+              </button>
+            );
+          })}
         </div>
       )}
 

@@ -39,7 +39,7 @@ export const LinearDashboard: React.FC<LinearDashboardProps> = ({
     docsRegistry.find(d => d.id === 'apk-compilation-and-r8-proguard'),
     docsRegistry.find(d => d.id === 'concurrency-mid-android'),
     docsRegistry.find(d => d.id === 'release-senior-android'),
-    docsRegistry.find(d => d.id === 'fundamentals-type-system-and-null-safety'),
+    docsRegistry.find(d => d.id === 'fundamentals-null-safety-kotlin'),
     docsRegistry.find(d => d.id === 'tech-lead-roadmap'),
   ].filter(Boolean) as DocItem[];
 

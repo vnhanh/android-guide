@@ -10,7 +10,9 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [fundamentals-generics-and-variance, fundamentals-memory-management, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
+topic: concurrency-mid
+leaf: iOS
+prerequisites: [fundamentals-generics-kotlin, fundamentals-memory-management-swift, platform-process-lifecycle-ios, platform-background-work-ios, platform-permissions-ios]
 outcomes:
   - "Write a screen whose in-flight work stops when the screen goes away, and demonstrate it stopping"
   - "Explain why a Task that never checks isCancelled keeps running after the view disappears"
@@ -37,7 +39,7 @@ demo: concurrency-cooperative-cancellation
 > stopping, and be able to explain — precisely, not by analogy to Kotlin — why an unchecked
 > `Task` does not stop on its own.
 
-## 1. `async`/`await` and `Task` — where the work actually lives
+## 1. `async`/`await` and `Task` — where the work actually lives {concept=concurrency-mid/scope-and-dispatch}
 
 An `async` function, like Kotlin's `suspend fun`, can pause without blocking its thread. The
 difference that trips up an Android-trained reader first: there is no scope object you pass
@@ -81,7 +83,7 @@ URLSession or a database driver already suspends off the calling thread; the con
 runtime schedules the resumption. The decision that *does* need to be made explicitly is which
 **actor** a given piece of code runs on, covered next.
 
-## 2. Cancellation is a flag — checking it is the whole job
+## 2. Cancellation is a flag — checking it is the whole job {concept=concurrency-mid/cancellation}
 
 This is the fact that surprises every engineer who has internalised Kotlin's cancellation model
 first, and it is worth stating precisely: **calling `task.cancel()` sets `Task.isCancelled` to
@@ -150,7 +152,7 @@ or via `MutableStateFlow`'s thread-safe emit" is enforced by discipline and code
 state is a compile error in Swift; the closest Kotlin equivalent — mutating a plain `var` from
 the wrong dispatcher — compiles cleanly and fails at runtime, if at all.
 
-## 4. `AsyncStream` and `@Observable` — Flow's nearest neighbours
+## 4. `AsyncStream` and `@Observable` — Flow's nearest neighbours {concept=concurrency-mid/reactive-streams}
 
 `AsyncStream` is the closest analogue to a cold Kotlin `Flow`: a sequence of values produced
 over time, consumed with `for await`.

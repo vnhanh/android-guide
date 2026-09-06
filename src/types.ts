@@ -96,6 +96,22 @@ export interface DocItem {
   band?: Band;
   platform?: Platform;
   counterpart?: string; // id of the paired platform article
+
+  /**
+   * restructure-v2 (plan/restructure-v2.md §1-2) — leaf-split articles. Several
+   * `DocItem`s share one `topic` (e.g. `null-safety`), one per `leaf`
+   * (Java/Kotlin/... or Android/iOS/Flutter) — the sidebar groups them into a
+   * single row, and the leaf tab bar on `DocViewer` switches between them.
+   * Absent on a domain that hasn't been leaf-split yet (axis='none', or a
+   * language/platform-axis domain not yet rewritten under restructure-v2).
+   */
+  topic?: string;
+  leaf?: LanguageLeaf | PlatformLeaf;
+  /** restructure-v2 §5 — marks a per-domain Interview Questions article
+   * (`docs/<domain>/interview.md`) so it is excluded from the normal
+   * Level rows and picked up by `InterviewView` instead. */
+  kind?: 'interview';
+
   prerequisites: string[]; // article ids
   outcomes: string[];
   resources: ResourceLink[];

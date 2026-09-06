@@ -10,6 +10,8 @@ band: S
 platform: android
 level: Senior
 sidebar_position: 3
+topic: concurrency-senior
+leaf: Android
 prerequisites: [concurrency-mid-android]
 outcomes:
   - "Design the concurrency model for a screen with three concurrent sources and one cancellable write, and say what happens when each fails"
@@ -35,7 +37,7 @@ resources:
 > cancellable write, and state precisely what happens to each of the four when any one of them
 > fails.
 
-## 1. `Job` vs `SupervisorJob` — failure propagation is a property of the scope
+## 1. `Job` vs `SupervisorJob` — failure propagation is a property of the scope {concept=concurrency-senior/failure-propagation}
 
 ```mermaid
 graph TD
@@ -138,7 +140,7 @@ searchQuery
 | `conflate()` | Never | Latest only, may skip | High-frequency sensor/UI state where only "now" matters |
 | `debounce`/`flatMapLatest` | N/A — reshapes timing | Coalesced | User input driving a downstream request |
 
-## 4. Diagnosing races, deadlocks and leaked scopes
+## 4. Diagnosing races, deadlocks and leaked scopes {concept=concurrency-senior/diagnosing-races}
 
 **A leaked scope** is a `CoroutineScope` created without a bound lifecycle — commonly a
 hand-rolled `CoroutineScope(SupervisorJob())` stored as a singleton field with no `cancel()`

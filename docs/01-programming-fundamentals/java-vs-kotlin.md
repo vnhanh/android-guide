@@ -10,7 +10,7 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 12
-prerequisites: [fundamentals-type-system-and-null-safety]
+prerequisites: [fundamentals-null-safety-kotlin]
 outcomes:
   - "Answer \"what's different between Java and Kotlin, and why Kotlin?\" in two minutes with concrete mechanisms, not adjectives"
 counterpart: fundamentals-mid-ios-objc-vs-swift

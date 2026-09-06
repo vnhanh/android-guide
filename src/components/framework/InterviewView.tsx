@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
 import { getDomain } from '../../data/framework';
 import { getInterviewFlowNeighbors } from '../../data/navFlow';
-import { docsRegistry } from '../../data/docsRegistry';
+import { docsRegistry, findInterviewDoc } from '../../data/docsRegistry';
 import { Level } from '../../types';
 
 interface InterviewViewProps {
@@ -14,18 +14,102 @@ interface InterviewViewProps {
 
 const LEVELS: Level[] = ['Mid', 'Senior', 'Lead'];
 
+interface QAPair {
+  q: string;
+  a: string;
+}
+
+// restructure-v2 (plan/restructure-v2.md §5) — `docs/<domain>/interview.md`
+// convention: `## Mid` / `## Senior` / `## Lead` headings, each containing
+// `Q: ...` / `A: ...` pairs (each may wrap across lines, joined until the
+// next `Q:`/`A:` marker or a blank line). Deliberately not routed through
+// DocViewer's full markdown renderer — this is a much narrower, self-contained
+// format, and keeping its own tiny parser avoids coupling the two.
+function parseInterviewBody(body: string): Partial<Record<Level, QAPair[]>> {
+  const sections: Partial<Record<Level, QAPair[]>> = {};
+  let currentLevel: Level | null = null;
+  let pairs: QAPair[] = [];
+  let field: 'q' | 'a' | null = null;
+
+  const flushField = () => {
+    field = null;
+  };
+  const commitLevel = () => {
+    if (currentLevel) sections[currentLevel] = pairs;
+  };
+
+  for (const rawLine of body.split('\n')) {
+    const line = rawLine.trim();
+    const headingMatch = line.match(/^##\s+(Mid|Senior|Lead)\s*$/i);
+    if (headingMatch) {
+      commitLevel();
+      const word = headingMatch[1].toLowerCase();
+      currentLevel = word === 'mid' ? 'Mid' : word === 'senior' ? 'Senior' : 'Lead';
+      pairs = [];
+      flushField();
+      continue;
+    }
+    if (!currentLevel) continue;
+
+    const qMatch = line.match(/^Q:\s*(.*)$/);
+    const aMatch = line.match(/^A:\s*(.*)$/);
+    if (qMatch) {
+      pairs.push({ q: qMatch[1], a: '' });
+      field = 'q';
+      continue;
+    }
+    if (aMatch) {
+      if (pairs.length > 0) pairs[pairs.length - 1].a = aMatch[1];
+      field = 'a';
+      continue;
+    }
+    if (line === '') {
+      flushField();
+      continue;
+    }
+    // Continuation of a wrapped Q or A line.
+    if (field && pairs.length > 0) {
+      const last = pairs[pairs.length - 1];
+      last[field] = `${last[field]} ${line}`.trim();
+    }
+  }
+  commitLevel();
+  return sections;
+}
+
+const QuestionCard: React.FC<{ index: number; qa: QAPair }> = ({ index, qa }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
+      >
+        <span className="shrink-0 mt-0.5 text-xs font-mono font-bold text-cyan-600 dark:text-cyan-400 w-6">{index}.</span>
+        <span className="flex-1 text-sm font-semibold text-slate-900 dark:text-white">{qa.q}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pl-[2.75rem] text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          {qa.a}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /**
  * restructure-v2 (plan/restructure-v2.md §5) — one Interview Questions node
- * per domain, tabbed by level. No domain has authored interview content yet
- * (that lands per-domain from Phase B on, alongside the rest of that domain's
- * rewrite) — this ships the renderer and the ≥8-per-level floor as a visible
- * target, so the shape is proven and browsable before any domain's questions
- * are written against it.
+ * per domain, tabbed by level, ≥8 questions per level, answers collapsed by
+ * default so the page doubles as a self-quiz.
  */
 export const InterviewView: React.FC<InterviewViewProps> = ({ domainSlug, onBackToDomain, onSelectDoc, onOpenInterview }) => {
   const [activeLevel, setActiveLevel] = useState<Level>('Mid');
   const domain = getDomain(domainSlug);
   const { prev, next } = getInterviewFlowNeighbors(domainSlug);
+  const interviewDoc = findInterviewDoc(domainSlug);
+  const sections = interviewDoc ? parseInterviewBody(interviewDoc.contentEn) : {};
+  const questions = sections[activeLevel] ?? [];
 
   if (!domain) {
     return (
@@ -69,28 +153,37 @@ export const InterviewView: React.FC<InterviewViewProps> = ({ domainSlug, onBack
           <button
             key={level}
             onClick={() => setActiveLevel(level)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition flex items-center gap-1.5 ${
               activeLevel === level
                 ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
-            {level}
+            <span>{level}</span>
+            {sections[level] && (
+              <span className="text-[10px] font-mono text-slate-400">{sections[level]!.length}</span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Not-yet-authored stub — every domain is browsable to this point today;
-          questions get written per-domain starting Phase B (restructure-v2.md §7). */}
-      <div className="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400">
-        <p className="font-semibold text-slate-700 dark:text-slate-300 mb-1">
-          {activeLevel} questions for {domain.name} haven't been authored yet.
-        </p>
-        <p>
-          This page is wired end to end — level tabs, flow, and the ≥8-question floor — so
-          writing them is the only thing left once this domain's rewrite starts.
-        </p>
-      </div>
+      {questions.length > 0 ? (
+        <div className="space-y-2">
+          {questions.map((qa, i) => (
+            <QuestionCard key={i} index={i + 1} qa={qa} />
+          ))}
+        </div>
+      ) : (
+        <div className="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400">
+          <p className="font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            {activeLevel} questions for {domain.name} haven't been authored yet.
+          </p>
+          <p>
+            This page is wired end to end — level tabs, flow, and the ≥8-question floor — so
+            writing them is the only thing left once this domain's rewrite starts.
+          </p>
+        </div>
+      )}
 
       {/* Prev / next flow — Interview is the last stop in a domain before the next one starts. */}
       <footer className="mt-14 pt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">

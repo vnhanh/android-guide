@@ -10,7 +10,9 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, concurrency-mid-android]
+topic: data-mid
+leaf: Android
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-oop-solid-kotlin, concurrency-mid-android]
 outcomes:
   - "Ship a schema migration with a test that would fail if the migration were wrong"
 counterpart: data-mid-ios
@@ -34,7 +36,7 @@ resources:
 > **Outcome.** Ship a schema migration with a test that would fail if the migration were wrong —
 > not a migration that merely compiles and has never been run against real prior-version data.
 
-## 1. Room: entities, DAOs, and migrations you have actually tested
+## 1. Room: entities, DAOs, and migrations you have actually tested {concept=data-mid/local-persistence-choice}
 
 ```kotlin
 @Entity(tableName = "users")
@@ -94,7 +96,7 @@ class MigrationTest {
 }
 ```
 
-## 2. DataStore and the secure key-value boundary
+## 2. DataStore and the secure key-value boundary {concept=data-mid/key-value-storage}
 
 ```kotlin
 val Context.settingsDataStore by preferencesDataStore(name = "settings")
@@ -112,7 +114,7 @@ suspend fun saveNotificationsEnabled(context: Context, enabled: Boolean) {
 > compromised device — that boundary belongs to the Android Keystore-backed `EncryptedSharedPreferences`
 > or, more directly, the Keystore APIs themselves (covered in domain 10's Mid article).
 
-## 3. Cache lifetime and invalidation
+## 3. Cache lifetime and invalidation {concept=data-mid/cache-invalidation}
 
 ```kotlin
 data class CachedProfile(val profile: UserProfile, val fetchedAt: Instant)

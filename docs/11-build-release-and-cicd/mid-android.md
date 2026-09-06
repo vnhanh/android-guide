@@ -10,7 +10,7 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice]
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-oop-solid-kotlin]
 outcomes:
   - "Find the commit that introduced a regression with bisect, rather than reading the diff and guessing"
 counterpart: release-mid-ios

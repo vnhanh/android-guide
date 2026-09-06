@@ -10,7 +10,9 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
+topic: ui-mid
+leaf: iOS
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-oop-solid-kotlin, platform-process-lifecycle-ios, platform-background-work-ios, platform-permissions-ios]
 outcomes:
   - "Ship a screen whose four states are all reachable in a test, and which survives Dynamic Type at the largest accessibility size without clipping"
 counterpart: ui-mid-android
@@ -35,7 +37,7 @@ resources:
 > reachable in a test, and which survives Dynamic Type at the largest accessibility text size
 > without clipped or truncated content.
 
-## 1. `@State`, `@Binding`, `@Observable` — where each belongs
+## 1. `@State`, `@Binding`, `@Observable` — where each belongs {concept=ui-mid/state-management}
 
 ```swift
 @Observable
@@ -70,7 +72,7 @@ struct SearchField: View {
 > reverse mistake — `@State` for something a parent screen actually needs to react to — is the
 > one that produces a bug, not just a style nit.
 
-## 2. Four states, never three
+## 2. Four states, never three {concept=ui-mid/four-states}
 
 ```swift
 enum ProfileUiState {
@@ -97,7 +99,7 @@ struct ProfileContent: View {
 error, which is the concrete enforcement mechanism behind "never three states": the type system
 will not let a developer forget one, the way an `if`/`else if` chain silently would.
 
-## 3. `List`, `LazyVStack`, and stable identity
+## 3. `List`, `LazyVStack`, and stable identity {concept=ui-mid/list-identity}
 
 ```swift
 List(users) { user in         // User must conform to Identifiable, or pass id: \.id explicitly
@@ -112,7 +114,7 @@ List(users) { user in         // User must conform to Identifiable, or pass id: 
 > (wrong row animating, state attached to the wrong row) that only appear once the list actually
 > changes, not on first render.
 
-## 4. VoiceOver, Dynamic Type, and the fixed-height-text failure
+## 4. VoiceOver, Dynamic Type, and the fixed-height-text failure {concept=ui-mid/accessibility}
 
 ```swift
 Text("Delete")
@@ -140,7 +142,7 @@ VStack {
 > largest size has not actually been tested for this outcome — it has been tested at one
 > arbitrary point on a continuum the OS explicitly supports scaling across.
 
-## 5. Theming and tokens
+## 5. Theming and tokens {concept=ui-mid/theming}
 
 ```swift
 extension Color {

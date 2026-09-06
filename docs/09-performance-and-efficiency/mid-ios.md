@@ -10,7 +10,7 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [platform-process-lifecycle-and-death, platform-startup-sequencing-and-diagnostics, ui-mid-ios]
+prerequisites: [platform-process-lifecycle-ios, platform-startup-sequencing-android, ui-mid-ios]
 outcomes:
   - "Identify the cause of a janky screen with a profiler, stated in hitch ratio rather than dropped frames — the two are not interchangeable"
 counterpart: performance-mid-android

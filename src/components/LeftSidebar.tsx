@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Filter, CheckCircle2, Layers, HelpCircle } f
 import { docsRegistry } from '../data/docsRegistry';
 import { DOMAINS } from '../data/framework';
 import { useI18n } from '../context/I18nContext';
+import { useLeaf } from '../context/LeafContext';
 import { Level } from '../types';
 
 const LEVELS: Level[] = ['Mid', 'Senior', 'Lead'];
@@ -33,6 +34,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onCloseMobile
 }) => {
   const { lang, t } = useI18n();
+  const { languageLeaf, platformLeaf } = useLeaf();
   const [filterText, setFilterText] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
@@ -71,19 +73,39 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
         {DOMAINS.map(domain => {
           const domainDocs = docsRegistry
-            .filter(d => d.domain === domain.slug)
+            .filter(d => d.domain === domain.slug && d.kind !== 'interview')
             .filter(d => matchesFilter(lang === 'vi' ? d.title : d.titleEn, lang === 'vi' ? d.description : d.descriptionEn, d.tags));
 
           if (filterText.trim() && domainDocs.length === 0) return null;
 
           const isCollapsed = collapsedCategories[domain.slug];
 
+          // restructure-v2 §2 — a leaf-split topic (several DocItems sharing one
+          // `topic`, one per `leaf`) collapses to a single row: pick whichever
+          // leaf matches the reader's current language/platform preference,
+          // falling back to the first leaf that exists for that topic.
+          const pickLeafDoc = (docsInTopic: typeof domainDocs) => {
+            if (docsInTopic.length === 1) return docsInTopic[0];
+            const preferred = docsInTopic.find(d => d.leaf === languageLeaf || d.leaf === platformLeaf);
+            return preferred ?? docsInTopic[0];
+          };
+
+          const groupedDocs = Array.from(
+            domainDocs.reduce((groups, doc) => {
+              const key = doc.topic ?? doc.id;
+              const existing = groups.get(key) ?? [];
+              existing.push(doc);
+              groups.set(key, existing);
+              return groups;
+            }, new Map<string, typeof domainDocs>()).values()
+          ).map(pickLeafDoc);
+
           // For each level: a band=X doc (principle-list layout, e.g. domain 01)
           // qualifies via its internal levelSections; every other doc qualifies
           // by a direct band -> level match (a doc without a band defaults to Mid).
           type LevelItem = { doc: typeof domainDocs[number]; anchor: string | undefined };
           const docsForLevel = (level: Level): LevelItem[] =>
-            domainDocs
+            groupedDocs
               .map((doc): LevelItem | null => {
                 if (doc.band === 'X') {
                   const section = doc.levelSections.find(s => s.level === level);
@@ -132,7 +154,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                                 }`}
                               >
                                 <span className="truncate pr-2">
-                                  {doc.band && doc.band !== 'X' && doc.platform && doc.platform !== 'shared' ? `${doc.platform} · ` : ''}
+                                  {doc.leaf ? `${doc.leaf} · ` : doc.band && doc.band !== 'X' && doc.platform && doc.platform !== 'shared' ? `${doc.platform} · ` : ''}
                                   {lang === 'vi' ? doc.title : doc.titleEn}
                                 </span>
                                 {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}

@@ -10,6 +10,8 @@ band: S
 platform: ios
 level: Senior
 sidebar_position: 4
+topic: data-senior
+leaf: iOS
 prerequisites: [data-mid-ios]
 outcomes:
   - "State a behaviour for the case where background execution never happens for days, not just for the common case where it does"
@@ -33,7 +35,7 @@ resources:
 > afterthought — what happens when background sync simply never runs for days, because on this
 > platform that is not a hypothetical edge case.
 
-## 1. The same four, on `BGTaskScheduler`
+## 1. The same four, on `BGTaskScheduler` {concept=data-senior/durable-retry-queue}
 
 ```swift
 // Same shape as the Android repository: the local store is the single source of
@@ -80,7 +82,7 @@ func applicationDidBecomeActive() {
 }
 ```
 
-## 3. CloudKit or custom sync
+## 3. CloudKit or custom sync {concept=data-senior/sync-engine-design}
 
 ```swift
 // CloudKit: Apple-managed sync across a user's devices, with built-in conflict

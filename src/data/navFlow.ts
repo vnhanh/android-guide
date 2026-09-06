@@ -24,7 +24,7 @@ export function getFlowSequence(): FlowStop[] {
   const flow: FlowStop[] = [];
   for (const domain of DOMAINS) {
     const docs = docsRegistry
-      .filter(d => d.domain === domain.slug)
+      .filter(d => d.domain === domain.slug && d.kind !== 'interview')
       .sort((a, b) =>
         (BAND_ORDER[a.band ?? 'M'] ?? 0) - (BAND_ORDER[b.band ?? 'M'] ?? 0) ||
         a.sidebar_position - b.sidebar_position

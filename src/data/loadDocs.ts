@@ -130,6 +130,9 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
   const track = primary.data.track ? (String(primary.data.track) as DocItem['track']) : undefined;
   const counterpart = primary.data.counterpart ? String(primary.data.counterpart) : undefined;
   const demo = primary.data.demo ? String(primary.data.demo) : undefined;
+  const topic = primary.data.topic ? String(primary.data.topic) : undefined;
+  const leaf = primary.data.leaf ? (String(primary.data.leaf) as DocItem['leaf']) : undefined;
+  const kind = primary.data.kind === 'interview' ? 'interview' as const : undefined;
 
   const resources = Array.isArray(primary.data.resources)
     ? (primary.data.resources as Record<string, string>[]).map(r => ({
@@ -172,6 +175,9 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
     band,
     platform,
     counterpart,
+    topic,
+    leaf,
+    kind,
     prerequisites,
     outcomes,
     resources,
@@ -195,6 +201,18 @@ export const docsRegistry: DocItem[] = Array.from(filesById.entries())
 
 export function findDoc(id: string): DocItem | undefined {
   return docsRegistry.find(d => d.id === id);
+}
+
+/** restructure-v2 §2 — the sibling leaf article for the same topic, e.g.
+ * switching the leaf tab from Kotlin to Swift on the null-safety topic. */
+export function findDocByTopicLeaf(domain: string, topic: string, leaf: string): DocItem | undefined {
+  return docsRegistry.find(d => d.domain === domain && d.topic === topic && d.leaf === leaf);
+}
+
+/** restructure-v2 §5 — the Interview Questions article for a domain, if one
+ * has been authored yet. */
+export function findInterviewDoc(domain: string): DocItem | undefined {
+  return docsRegistry.find(d => d.domain === domain && d.kind === 'interview');
 }
 
 /**

@@ -10,7 +10,7 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 13
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-memory-management]
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-memory-management-swift]
 outcomes:
   - "Explain the Objective-C/Swift difference in terms of dispatch and type-system guarantees, and name three things Objective-C still does better"
 counterpart: fundamentals-mid-android-java-vs-kotlin

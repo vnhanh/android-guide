@@ -10,6 +10,8 @@ band: S
 platform: ios
 level: Senior
 sidebar_position: 4
+topic: ui-senior
+leaf: iOS
 prerequisites: [ui-mid-ios]
 outcomes:
   - "Diagnose an over-invalidating view from _printChanges() and identity, and state honestly what SwiftUI cannot prove the way Compose can"
@@ -35,7 +37,7 @@ resources:
 > `_printChanges()` and identity — and be honest, in the same breath, about what SwiftUI simply
 > does not expose the way Compose's compiler report does.
 
-## 1. Invalidation diagnosis: identity, `Equatable`, `_printChanges()`
+## 1. Invalidation diagnosis: identity, `Equatable`, `_printChanges()` {concept=ui-senior/diagnosis}
 
 SwiftUI re-evaluates a view's `body` when the data it reads changes, determined by structural
 identity and `Equatable` comparison where applicable — there is no compiler report naming which
@@ -76,7 +78,7 @@ struct UserProfile: Equatable {
 }
 ```
 
-## 2. Adaptive layout: size classes, split view, Stage Manager
+## 2. Adaptive layout: size classes, split view, Stage Manager {concept=ui-senior/adaptive-layout}
 
 ```swift
 struct AdaptiveRootView: View {
@@ -102,7 +104,7 @@ switches at the two or three fixed size-class breakpoints can land on an awkward
 width Stage Manager users specifically create — testing at freely-resized widths, not just the
 canonical size-class breakpoints, is the practical mitigation.
 
-## 3. `ViewModifier` and component API design
+## 3. `ViewModifier` and component API design {concept=ui-senior/component-api}
 
 ```swift
 struct CardStyle: ViewModifier {
@@ -127,7 +129,7 @@ component API that only the first screen's exact layout needs — a hardcoded na
 buried inside it, fixed spacing with no override — will not survive a second, different consumer
 without being edited.
 
-## 4. Animation and gesture composition
+## 4. Animation and gesture composition {concept=ui-senior/motion-gesture}
 
 ```swift
 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
@@ -141,7 +143,7 @@ DragGesture()
     .onEnded { _ in withAnimation(.spring()) { offset = .zero } }
 ```
 
-## 5. The `Layout` protocol
+## 5. The `Layout` protocol {concept=ui-senior/custom-layout}
 
 Analogous to Compose's custom `Layout` — warranted when no combination of `HStack`/`VStack`/
 `ZStack` expresses the needed measurement relationship:

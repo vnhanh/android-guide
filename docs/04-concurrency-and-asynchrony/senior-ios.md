@@ -10,6 +10,8 @@ band: S
 platform: ios
 level: Senior
 sidebar_position: 4
+topic: concurrency-senior
+leaf: iOS
 prerequisites: [concurrency-mid-ios]
 outcomes:
   - "Design the concurrency model for a screen with three concurrent sources and one cancellable write, and say what happens when each fails"
@@ -113,7 +115,7 @@ a `Task {}` closure is a **compile error**, not a runtime crash discovered under
 the Swift-side counterpart of Kotlin's thread-confinement convention — except it is checked by
 the type system rather than left to whoever wrote the review comment.
 
-## 3. `TaskGroup` — structured fan-out with per-child failure handling
+## 3. `TaskGroup` — structured fan-out with per-child failure handling {concept=concurrency-senior/failure-propagation}
 
 `TaskGroup` is the direct analogue of a coroutine scope launching several children and awaiting
 all of them, with an explicit choice about whether one child's failure should cancel the rest.
@@ -150,7 +152,7 @@ func loadOrderScreen(orderId: String) async throws -> OrderScreenData {
 > makes it a property of **how each child's result is consumed** (`try await` propagates, `try?`
 > isolates) — decided per child, inside the fan-out itself, not upstream of it.
 
-## 4. Diagnosing data races: Swift 6 diagnostics and the Thread Sanitizer
+## 4. Diagnosing data races: Swift 6 diagnostics and the Thread Sanitizer {concept=concurrency-senior/diagnosing-races}
 
 Swift 6's strict concurrency checking catches a large class of races **at compile time** —
 a non-`Sendable` value crossing an actor boundary, or a `@MainActor`-isolated property accessed

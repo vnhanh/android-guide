@@ -10,7 +10,9 @@ band: M
 platform: android
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-generics-and-variance, fundamentals-memory-management, platform-process-lifecycle-and-death, platform-background-work-and-scheduling, platform-permissions-and-entry-points]
+topic: concurrency-mid
+leaf: Android
+prerequisites: [fundamentals-generics-kotlin, fundamentals-memory-management-kotlin, platform-process-lifecycle-android, platform-background-work-android, platform-permissions-android]
 outcomes:
   - "Write a screen whose in-flight work stops when the screen goes away, and demonstrate it stopping"
 counterpart: concurrency-mid-ios
@@ -36,7 +38,7 @@ demo: concurrency-cooperative-cancellation
 > when the screen goes away, and you can prove it — with a log line, a test, or the demo below —
 > rather than assert it in a PR description.
 
-## 1. `suspend`, scopes and dispatchers — chosen, not defaulted
+## 1. `suspend`, scopes and dispatchers — chosen, not defaulted {concept=concurrency-mid/scope-and-dispatch}
 
 A `suspend fun` is a function that can pause without blocking the thread it started on. It
 carries no thread by itself — the **scope** it runs in decides its lifetime, and the
@@ -83,7 +85,7 @@ Dispatchers.Default)` inside a singleton repository, for instance — lives as l
 does, which for a singleton is the process. That is sometimes correct (a cache-warming job that
 should outlive any one screen) and often an accidental leak (a `Job` nobody ever cancels).
 
-## 2. Cancellation is cooperative — and that is not a caveat, it is the design
+## 2. Cancellation is cooperative — and that is not a caveat, it is the design {concept=concurrency-mid/cancellation}
 
 Calling `job.cancel()` does not stop a coroutine. It marks the `Job` cancelled and arranges for
 the *next* suspension point inside it to throw a `CancellationException`. Between suspension
@@ -134,7 +136,7 @@ viewModelScope.launch {
 }
 ```
 
-## 3. `StateFlow` vs `SharedFlow` vs cold `Flow`
+## 3. `StateFlow` vs `SharedFlow` vs cold `Flow` {concept=concurrency-mid/reactive-streams}
 
 These three cover almost every stream a screen needs, and picking the wrong one is a recurring
 Mid-level review comment.

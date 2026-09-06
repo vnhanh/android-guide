@@ -24,7 +24,21 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
     );
   }
 
-  const filed = filedArticlesForDomain(slug);
+  // restructure-v2 §5 — the per-domain Interview Questions article is a
+  // distinct thing from a band-unit article; it never counts toward coverage
+  // grids or level-progress badges here.
+  const filed = filedArticlesForDomain(slug).filter(d => d.kind !== 'interview');
+
+  // restructure-v2 §2 — a leaf-split topic (several DocItems sharing one
+  // `topic`) collapses to one representative card, so a topic with 5
+  // language leaves doesn't render as 5 near-duplicate cards.
+  const topicRepresentatives = Array.from(
+    filed.reduce((groups, doc) => {
+      const key = doc.topic ?? doc.id;
+      if (!groups.has(key)) groups.set(key, doc);
+      return groups;
+    }, new Map<string, typeof filed[number]>()).values()
+  );
   const findFiled = (band: Band, platform: Platform) =>
     filed.find(d => d.band === band && d.platform === platform);
 
@@ -99,15 +113,22 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
           {/* Principle-first domains (currently only 01): one article per principle, each with
               its own internal Mid/Senior/Lead sections — no band x platform grid to render. */}
           <section className="mb-10 space-y-2">
-            {[...filed]
+            {[...topicRepresentatives]
               .sort((a, b) => a.sidebar_position - b.sidebar_position)
               .map(doc => (
                 <button
-                  key={doc.id}
+                  key={doc.topic ?? doc.id}
                   onClick={() => onSelectDoc(doc.id)}
                   className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-cyan-500/40 transition"
                 >
-                  <div className="font-semibold text-sm text-slate-900 dark:text-white">{doc.title}</div>
+                  <div className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>{doc.title}</span>
+                    {doc.leaf && (
+                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20">
+                        {doc.leaf} shown — tabs on the page
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{doc.description}</p>
                   {doc.outcomes[0] && (
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">

@@ -23,6 +23,11 @@ export const PLATFORM_LEAVES: PlatformLeaf[] = ['Android', 'iOS', 'Flutter'];
 export const DOMAIN_AXES: Record<string, DomainAxisDef> = {
   '01-programming-fundamentals': { axis: 'language', leaves: LANGUAGE_LEAVES, leadLeaves: false },
   '02-platform-and-os-internals': { axis: 'platform', leaves: PLATFORM_LEAVES, leadLeaves: false },
+  // No Flutter content exists for this domain yet — only the two leaves that
+  // actually have articles are declared, so the tab bar never shows a dead tab.
+  '03-ui-and-interaction-engineering': { axis: 'platform', leaves: ['Android', 'iOS'], leadLeaves: false },
+  '04-concurrency-and-asynchrony': { axis: 'platform', leaves: ['Android', 'iOS'], leadLeaves: false },
+  '05-data-persistence-and-offline': { axis: 'platform', leaves: ['Android', 'iOS'], leadLeaves: false },
 };
 
 const DEFAULT_AXIS: DomainAxisDef = { axis: 'none' };

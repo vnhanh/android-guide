@@ -10,6 +10,8 @@ band: S
 platform: android
 level: Senior
 sidebar_position: 3
+topic: ui-senior
+leaf: Android
 prerequisites: [ui-mid-android]
 outcomes:
   - "Take a screen recomposing every frame, find the unstable parameter from the compiler report, prove the fix with recomposition counts"
@@ -35,7 +37,7 @@ resources:
 > from the Compose compiler report, and prove the fix — not assert it — with a before-and-after
 > recomposition count.
 
-## 1. Recomposition diagnosis and the stability contract
+## 1. Recomposition diagnosis and the stability contract {concept=ui-senior/diagnosis}
 
 Compose skips recomposing a composable whose inputs are all **stable** and **unchanged** — a
 type is stable if the compiler can prove its public properties never change without notifying
@@ -90,7 +92,7 @@ counting `SideEffect` calls per composable) before and after, on the same intera
 outcome is checkable specifically because it is a number, not an impression that things "feel
 smoother."
 
-## 2. Adaptive UI: window size classes, list-detail, foldable postures
+## 2. Adaptive UI: window size classes, list-detail, foldable postures {concept=ui-senior/adaptive-layout}
 
 ```kotlin
 @Composable
@@ -119,7 +121,7 @@ A foldable's **posture** (flat, half-open/tabletop) is a further axis beyond wid
 half-open posture typically wants the fold treated as a natural split point (list above, detail
 below, or vice versa) rather than the same two-pane layout a flat expanded tablet would use.
 
-## 3. Component APIs that survive a second consumer
+## 3. Component APIs that survive a second consumer {concept=ui-senior/component-api}
 
 A component designed against exactly one call site tends to leak that call site's assumptions
 into its API. The Senior-level test: could a second, different screen consume this without
@@ -153,7 +155,7 @@ fun ProfileHeader(
 }
 ```
 
-## 4. Motion, gesture quality, and custom layout
+## 4. Motion, gesture quality, and custom layout {concept=ui-senior/motion-gesture}
 
 ```kotlin
 // A spring-based animation feels physically grounded; a fixed-duration tween

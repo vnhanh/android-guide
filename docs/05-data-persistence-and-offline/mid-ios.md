@@ -10,7 +10,9 @@ band: M
 platform: ios
 level: Mid
 sidebar_position: 2
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, concurrency-mid-ios]
+topic: data-mid
+leaf: iOS
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-oop-solid-kotlin, concurrency-mid-ios]
 outcomes:
   - "Justify the persistence choice against the two rejected options"
 counterpart: data-mid-android
@@ -34,7 +36,7 @@ resources:
 > **Outcome.** Justify a persistence choice against the two options rejected — not just state
 > which was picked, but say specifically what each rejected option would have cost.
 
-## 1. SwiftData vs Core Data vs GRDB, with reasons
+## 1. SwiftData vs Core Data vs GRDB, with reasons {concept=data-mid/local-persistence-choice}
 
 ```swift
 // SwiftData: the modern default for a new app with straightforward model needs —
@@ -96,7 +98,7 @@ class UserProfile: NSManagedObject {
 > checking against this specific list is how a migration silently fails or crashes in production
 > for the first user whose data takes the untested path.
 
-## 3. Keychain vs `UserDefaults`
+## 3. Keychain vs `UserDefaults` {concept=data-mid/key-value-storage}
 
 ```swift
 // UserDefaults: ordinary settings and flags, not encrypted at rest by default —
@@ -113,7 +115,7 @@ let query: [String: Any] = [
 SecItemAdd(query as CFDictionary, nil)
 ```
 
-## 4. `URLCache` and HTTP-level caching
+## 4. `URLCache` and HTTP-level caching {concept=data-mid/cache-invalidation}
 
 ```swift
 let cache = URLCache(memoryCapacity: 10 * 1024 * 1024, diskCapacity: 50 * 1024 * 1024)

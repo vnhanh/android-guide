@@ -10,6 +10,8 @@ band: S
 platform: android
 level: Senior
 sidebar_position: 3
+topic: data-senior
+leaf: Android
 prerequisites: [data-mid-android]
 outcomes:
   - "Build an offline-first flow and state its conflict rule in one sentence. If you cannot, you have not chosen one."
@@ -51,7 +53,7 @@ class TaskRepository(private val dao: TaskDao, private val api: TaskApi) {
 }
 ```
 
-## 2. Optimistic UI and durable retry queues on `WorkManager`
+## 2. Optimistic UI and durable retry queues on `WorkManager` {concept=data-senior/durable-retry-queue}
 
 ```markdown
 ## Worked case: optimistic UI + durable retry, task-completion toggle
@@ -112,7 +114,7 @@ was never designed for.
 | Version vectors | Detected, surfaced for manual/UI-level merge | Data where a human should decide, and conflicts are rare enough to review |
 | CRDTs | Merged deterministically, nothing lost | Data structures that actually fit a CRDT shape (counters, grow-only sets, some text types) |
 
-## 4. Sync engine design, and partial sync over a mutable set
+## 4. Sync engine design, and partial sync over a mutable set {concept=data-senior/sync-engine-design}
 
 ```kotlin
 // Delta sync: request only what changed since the last successful sync cursor,

@@ -10,7 +10,7 @@ band: M
 platform: shared
 level: Mid
 sidebar_position: 1
-prerequisites: [fundamentals-type-system-and-null-safety, fundamentals-oop-and-solid-in-practice, platform-process-lifecycle-and-death, platform-startup-sequencing-and-diagnostics, networking-mid]
+prerequisites: [fundamentals-null-safety-kotlin, fundamentals-oop-solid-kotlin, platform-process-lifecycle-android, platform-startup-sequencing-android, networking-mid]
 outcomes:
   - "Audit your own feature against the OWASP mobile top ten and find at least one real issue"
 resources:
