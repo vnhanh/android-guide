@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
-import { Copy, Check, ChevronLeft, ChevronRight, BookOpen, Clock, Tag, Award, AlertCircle, Info, Lightbulb, AlertTriangle, ShieldAlert, Languages, Target, PlaySquare, ExternalLink } from 'lucide-react';
-import { DocItem } from '../types';
-import { docsRegistry } from '../data/docsRegistry';
+import React, { useEffect, useState } from 'react';
+import { Copy, Check, ChevronLeft, ChevronRight, BookOpen, Clock, Tag, Award, AlertCircle, Info, Lightbulb, AlertTriangle, ShieldAlert, Languages, Target, PlaySquare, ExternalLink, Link2, HelpCircle } from 'lucide-react';
+import { DocItem, Level } from '../types';
+import { docsRegistry, conceptIndex } from '../data/docsRegistry';
+import { getDomainAxis } from '../data/domainAxes';
+import { getDocFlowNeighbors } from '../data/navFlow';
 import { useI18n } from '../context/I18nContext';
+import { useLeaf } from '../context/LeafContext';
+import { slugifyHeading } from '../lib/slug';
+import { parseHeadingMeta } from '../lib/headingTags';
 import { MermaidDiagram } from './MermaidDiagram';
 import { ComparisonTabs, ComparisonTabItem } from './ComparisonTabs';
 
 interface DocViewerProps {
   doc: DocItem;
-  onSelectDoc: (docId: string) => void;
+  /** restructure-v2 §3 — heading id to scroll to on mount (a Level-row link
+   * from the sidebar into a band=X article's Mid/Senior/Lead section). */
+  activeAnchor?: string;
+  onSelectDoc: (docId: string, anchor?: string) => void;
   onNavigateHome: () => void;
   onOpenDemo?: (slug: string) => void;
+  onOpenInterview?: (domainSlug: string) => void;
 }
 
 // ---- Block descriptors — the output of parsing, before any JSX is built ----
@@ -20,8 +29,8 @@ interface DocViewerProps {
 // parser needing to know anything about tab grouping itself.
 type Block =
   | { type: 'h1'; text: string }
-  | { type: 'h2'; text: string }
-  | { type: 'h3'; text: string }
+  | { type: 'h2'; text: string; levelTag?: Level; concept?: string }
+  | { type: 'h3'; text: string; levelTag?: Level; concept?: string }
   | { type: 'p'; text: string }
   | { type: 'li'; text: string }
   | { type: 'oli'; text: string }
@@ -203,9 +212,11 @@ const parseBlocks = (markdownText: string): Block[] => {
     if (line.startsWith('# ')) {
       blocks.push({ type: 'h1', text: line.replace('# ', '').trim() });
     } else if (line.startsWith('## ')) {
-      blocks.push({ type: 'h2', text: line.replace('## ', '').trim() });
+      const { title, levelTag, concept } = parseHeadingMeta(line.replace('## ', ''));
+      blocks.push({ type: 'h2', text: title, levelTag, concept });
     } else if (line.startsWith('### ')) {
-      blocks.push({ type: 'h3', text: line.replace('### ', '').trim() });
+      const { title, levelTag, concept } = parseHeadingMeta(line.replace('### ', ''));
+      blocks.push({ type: 'h3', text: title, levelTag, concept });
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
       blocks.push({ type: 'li', text: line.substring(2) });
     } else if (/^\d+\.\s/.test(line)) {
@@ -295,10 +306,55 @@ const groupComparisonBlocks = (blocks: Block[]): RenderableBlock[] => {
   return out;
 };
 
-export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNavigateHome, onOpenDemo }) => {
+const LEVEL_ORDER: Level[] = ['Mid', 'Senior', 'Lead'];
+
+// restructure-v2 §3 — the visible Mid/Senior/Lead tag on a heading, whether it
+// came from the bare "## Mid" convention or an explicit {level=...} tag.
+const LEVEL_BADGE_STYLE: Record<Level, string> = {
+  Mid: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  Senior: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+  Lead: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+};
+
+const LevelBadge: React.FC<{ level: Level }> = ({ level }) => (
+  <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${LEVEL_BADGE_STYLE[level]}`}>
+    {level}
+  </span>
+);
+
+// restructure-v2 §4 — auto-generated cross-links for a `{concept=...}` heading:
+// every other heading across the registry that declares the same concept id,
+// with no hand-maintained cross-reference to keep in sync.
+const AlsoInLinks: React.FC<{ concept: string; currentDocId: string; onSelectDoc: (docId: string, anchor?: string) => void }> = ({
+  concept,
+  currentDocId,
+  onSelectDoc,
+}) => {
+  const entries = (conceptIndex.get(concept) ?? []).filter(e => e.docId !== currentDocId);
+  if (entries.length === 0) return null;
+  return (
+    <div className="-mt-2 mb-4 flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+      <Link2 className="w-3.5 h-3.5 shrink-0" />
+      <span className="font-semibold">Also in:</span>
+      {entries.map((e, i) => (
+        <button
+          key={`${e.docId}-${e.headingId}`}
+          onClick={() => onSelectDoc(e.docId, e.headingId)}
+          className="text-cyan-600 dark:text-cyan-400 hover:underline"
+        >
+          {e.title}{i < entries.length - 1 ? ',' : ''}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+export const DocViewer: React.FC<DocViewerProps> = ({ doc, activeAnchor, onSelectDoc, onNavigateHome, onOpenDemo, onOpenInterview }) => {
   const { lang, t } = useI18n();
+  const { languageLeaf, setLanguageLeaf, platformLeaf, setPlatformLeaf } = useLeaf();
   const [copiedCodeIndex, setCopiedCodeIndex] = useState<number | null>(null);
   const [preferredLang, setPreferredLang] = useState<string | null>(null);
+  const [levelFilter, setLevelFilter] = useState<'All' | Level>('All');
 
   const handleCopyCode = (codeText: string, index: number) => {
     navigator.clipboard.writeText(codeText);
@@ -306,15 +362,36 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
     setTimeout(() => setCopiedCodeIndex(null), 2000);
   };
 
-  // Find previous and next articles in the same category or overall registry
-  const sortedDocs = [...docsRegistry].sort((a, b) => {
-    if (a.category !== b.category) return a.category.localeCompare(b.category);
-    return a.sidebar_position - b.sidebar_position;
-  });
+  // restructure-v2 §3 — the site-wide domain flow (Mid -> Senior -> Lead ->
+  // Interview -> next domain) once this article is filed onto the new
+  // taxonomy; a `domain`-less legacy article (only tech-lead-roadmap today)
+  // falls back to the old whole-registry, category-ordered walk.
+  const flowNeighbors = doc.domain ? getDocFlowNeighbors(doc.id) : null;
+  const legacySortedDocs = doc.domain
+    ? []
+    : [...docsRegistry].sort((a, b) => {
+        if (a.category !== b.category) return a.category.localeCompare(b.category);
+        return a.sidebar_position - b.sidebar_position;
+      });
+  const legacyIndex = legacySortedDocs.findIndex(d => d.id === doc.id);
+  const prevDoc = !doc.domain && legacyIndex > 0 ? legacySortedDocs[legacyIndex - 1] : null;
+  const nextDoc = !doc.domain && legacyIndex < legacySortedDocs.length - 1 ? legacySortedDocs[legacyIndex + 1] : null;
 
-  const currentIndex = sortedDocs.findIndex(d => d.id === doc.id);
-  const prevDoc = currentIndex > 0 ? sortedDocs[currentIndex - 1] : null;
-  const nextDoc = currentIndex < sortedDocs.length - 1 ? sortedDocs[currentIndex + 1] : null;
+  // restructure-v2 §2 — leaf tab bar. Inert (no per-leaf content split exists
+  // yet outside the existing counterpart pairs) beyond setting the persisted
+  // preference, except where an Android/iOS counterpart already exists — then
+  // picking the other platform jumps straight to it.
+  const domainAxis = doc.domain ? getDomainAxis(doc.domain) : { axis: 'none' as const };
+  const counterpartDoc = doc.counterpart ? docsRegistry.find(d => d.id === doc.counterpart) : undefined;
+
+  useEffect(() => {
+    if (!activeAnchor) return;
+    // Wait a tick for the markdown body to have rendered its headings.
+    const raf = requestAnimationFrame(() => {
+      document.getElementById(activeAnchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [activeAnchor, doc.id]);
 
   // Inline markdown — `code spans` and **bold** — inside otherwise-plain text.
   // Headings, paragraphs, list items, table cells, blockquotes and callout
@@ -398,19 +475,27 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
           </h1>
         );
       case 'h2': {
-        const id = block.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const id = slugifyHeading(block.text);
         return (
-          <h2 id={id} key={key} className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-10 mb-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-            {renderInline(block.text, key)}
-          </h2>
+          <React.Fragment key={key}>
+            <h2 id={id} className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mt-10 mb-4 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5 flex-wrap">
+              {renderInline(block.text, key)}
+              {block.levelTag && <LevelBadge level={block.levelTag} />}
+            </h2>
+            {block.concept && <AlsoInLinks concept={block.concept} currentDocId={doc.id} onSelectDoc={onSelectDoc} />}
+          </React.Fragment>
         );
       }
       case 'h3': {
-        const id = block.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const id = slugifyHeading(block.text);
         return (
-          <h3 id={id} key={key} className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-6 mb-3">
-            {renderInline(block.text, key)}
-          </h3>
+          <React.Fragment key={key}>
+            <h3 id={id} className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-6 mb-3 flex items-center gap-2 flex-wrap">
+              {renderInline(block.text, key)}
+              {block.levelTag && <LevelBadge level={block.levelTag} />}
+            </h3>
+            {block.concept && <AlsoInLinks concept={block.concept} currentDocId={doc.id} onSelectDoc={onSelectDoc} />}
+          </React.Fragment>
         );
       }
       case 'li':
@@ -517,9 +602,42 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
     }
   };
 
+  // restructure-v2 §3 — "level is a tag, never a wall": a band=X article's
+  // Mid/Senior/Lead sections render as <details>, collapsed or open per the
+  // level filter above, but every section stays in the DOM and reachable —
+  // this only hides depth behind one click, it never removes it.
   const renderFormattedMarkdown = (markdownText: string) => {
     const blocks = groupComparisonBlocks(parseBlocks(markdownText));
-    return blocks.map((block, idx) => renderBlock(block, idx));
+
+    if (doc.levelSections.length === 0) {
+      return blocks.map((block, idx) => renderBlock(block, idx));
+    }
+
+    type Segment = { level: Level | null; blocks: { block: RenderableBlock; idx: number }[] };
+    const segments: Segment[] = [{ level: null, blocks: [] }];
+    blocks.forEach((block, idx) => {
+      const isLevelHeading = block.type === 'h2' && block.levelTag;
+      if (isLevelHeading) {
+        segments.push({ level: (block as Block & { type: 'h2' }).levelTag as Level, blocks: [] });
+      }
+      segments[segments.length - 1].blocks.push({ block, idx });
+    });
+
+    return segments.map((segment, sIdx) => {
+      if (segment.level === null) {
+        return segment.blocks.map(({ block, idx }) => renderBlock(block, idx));
+      }
+      const isOpen = levelFilter === 'All' || levelFilter === segment.level;
+      const [headingEntry, ...restEntries] = segment.blocks;
+      return (
+        <details key={`segment-${sIdx}-${levelFilter}`} open={isOpen} className="group/section">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden">
+            {renderBlock(headingEntry.block, headingEntry.idx)}
+          </summary>
+          <div>{restEntries.map(({ block, idx }) => renderBlock(block, idx))}</div>
+        </details>
+      );
+    });
   };
 
   // Phase 0.5: fall back on empty-after-trim, not on falsy — a whitespace-only
@@ -581,6 +699,71 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
           ))}
         </div>
       </header>
+
+      {/* restructure-v2 §3 — level filter. Only shown on a band=X article
+          (one continuous file spanning Mid/Senior/Lead); collapses sections
+          outside the chosen level, never removes them from the page. */}
+      {doc.levelSections.length > 1 && (
+        <div className="mb-6 flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Show depth:</span>
+          <div className="flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            {(['All', ...LEVEL_ORDER] as const).map(opt => (
+              <button
+                key={opt}
+                onClick={() => setLevelFilter(opt)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                  levelFilter === opt
+                    ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* restructure-v2 §2 — leaf tab. Persists the reader's language/platform
+          preference across the whole site; where a platform counterpart article
+          already exists, switching leaf jumps straight to it. */}
+      {domainAxis.axis === 'platform' && (
+        <div className="mb-6 flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-fit">
+          {(domainAxis.leaves ?? []).map(leaf => (
+            <button
+              key={leaf}
+              onClick={() => {
+                setPlatformLeaf(leaf as typeof platformLeaf);
+                if (counterpartDoc && counterpartDoc.platform === leaf.toLowerCase()) onSelectDoc(counterpartDoc.id);
+              }}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                platformLeaf === leaf
+                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              {leaf}
+            </button>
+          ))}
+        </div>
+      )}
+      {domainAxis.axis === 'language' && (
+        <div className="mb-6 flex gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-fit flex-wrap">
+          {(domainAxis.leaves ?? []).map(leaf => (
+            <button
+              key={leaf}
+              onClick={() => setLanguageLeaf(leaf as typeof languageLeaf)}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition ${
+                languageLeaf === leaf
+                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              {leaf}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Assessable outcomes (plan/domains.md, CONTRIBUTING.md definition of done) */}
       {doc.outcomes.length > 0 && (
@@ -659,38 +842,76 @@ export const DocViewer: React.FC<DocViewerProps> = ({ doc, onSelectDoc, onNaviga
         </section>
       )}
 
-      {/* Previous / Next Article Navigation Footer */}
-      <footer className="mt-14 pt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {prevDoc ? (
-          <button
-            onClick={() => onSelectDoc(prevDoc.id)}
-            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 text-left transition group"
-          >
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-              <span>{t('doc.prev')}</span>
-            </div>
-            <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-500 transition-colors line-clamp-1">
-              {lang === 'vi' ? prevDoc.title : prevDoc.titleEn}
-            </div>
-          </button>
-        ) : <div />}
+      {/* Previous / Next flow footer — restructure-v2 §3: Mid -> Senior -> Lead
+          -> Interview Questions -> next domain, when this article is filed on
+          the new taxonomy; falls back to the legacy whole-registry walk when
+          it isn't (only tech-lead-roadmap today). */}
+      {(() => {
+        const prevStop = flowNeighbors?.prev ?? null;
+        const nextStop = flowNeighbors?.next ?? null;
 
-        {nextDoc ? (
-          <button
-            onClick={() => onSelectDoc(nextDoc.id)}
-            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 text-right transition group"
-          >
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-end gap-1">
-              <span>{t('doc.next')}</span>
-              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-            <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-500 transition-colors line-clamp-1">
-              {lang === 'vi' ? nextDoc.title : nextDoc.titleEn}
-            </div>
-          </button>
-        ) : <div />}
-      </footer>
+        const prevLabel = prevStop
+          ? prevStop.kind === 'doc'
+            ? docsRegistry.find(d => d.id === prevStop.docId)?.titleEn
+            : 'Interview Questions'
+          : prevDoc
+          ? (lang === 'vi' ? prevDoc.title : prevDoc.titleEn)
+          : null;
+        const nextLabel = nextStop
+          ? nextStop.kind === 'doc'
+            ? docsRegistry.find(d => d.id === nextStop.docId)?.titleEn
+            : 'Interview Questions'
+          : nextDoc
+          ? (lang === 'vi' ? nextDoc.title : nextDoc.titleEn)
+          : null;
+
+        const goPrev = () => {
+          if (prevStop) {
+            prevStop.kind === 'doc' ? onSelectDoc(prevStop.docId) : onOpenInterview?.(prevStop.domain);
+          } else if (prevDoc) onSelectDoc(prevDoc.id);
+        };
+        const goNext = () => {
+          if (nextStop) {
+            nextStop.kind === 'doc' ? onSelectDoc(nextStop.docId) : onOpenInterview?.(nextStop.domain);
+          } else if (nextDoc) onSelectDoc(nextDoc.id);
+        };
+
+        return (
+          <footer className="mt-14 pt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {prevLabel ? (
+              <button
+                onClick={goPrev}
+                className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 text-left transition group"
+              >
+                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+                  <span>{t('doc.prev')}</span>
+                </div>
+                <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-500 transition-colors line-clamp-1 flex items-center gap-1.5">
+                  {flowNeighbors?.prev?.kind === 'interview' && <HelpCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                  {prevLabel}
+                </div>
+              </button>
+            ) : <div />}
+
+            {nextLabel ? (
+              <button
+                onClick={goNext}
+                className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 text-right transition group"
+              >
+                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-end gap-1">
+                  <span>{t('doc.next')}</span>
+                  <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-500 transition-colors line-clamp-1 flex items-center justify-end gap-1.5">
+                  {nextLabel}
+                  {flowNeighbors?.next?.kind === 'interview' && <HelpCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                </div>
+              </button>
+            ) : <div />}
+          </footer>
+        );
+      })()}
     </main>
   );
 };

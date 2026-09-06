@@ -1,6 +1,7 @@
 import { parseFrontmatter } from '../lib/frontmatter';
 import { slugifyHeading } from '../lib/slug';
-import { ContentStatus, DocItem, Language, Level, TocItem } from '../types';
+import { parseHeadingMeta } from '../lib/headingTags';
+import { ConceptEntry, ContentStatus, DocItem, Language, Level, LevelSection, TocItem } from '../types';
 
 /**
  * Build-time markdown loader — Phase 0.2 / 0.4.
@@ -43,14 +44,22 @@ function extractToc(body: string): TocItem[] {
   const toc: TocItem[] = [];
   body.split('\n').forEach(line => {
     if (line.startsWith('## ')) {
-      const text = line.replace('## ', '').trim();
-      toc.push({ id: slugifyHeading(text), title: text, level: 2 });
+      const { title, levelTag, concept } = parseHeadingMeta(line.replace('## ', ''));
+      toc.push({ id: slugifyHeading(title), title, level: 2, levelTag, concept });
     } else if (line.startsWith('### ')) {
-      const text = line.replace('### ', '').trim();
-      toc.push({ id: slugifyHeading(text), title: text, level: 3 });
+      const { title, levelTag, concept } = parseHeadingMeta(line.replace('### ', ''));
+      toc.push({ id: slugifyHeading(title), title, level: 3, levelTag, concept });
     }
   });
   return toc;
+}
+
+/** restructure-v2 §3 — the Mid/Senior/Lead spans an article's H2s declare,
+ * via the bare "## Mid" convention or an explicit `{level=...}` tag. */
+function extractLevelSections(toc: TocItem[]): LevelSection[] {
+  return toc
+    .filter(t => t.level === 2 && t.levelTag)
+    .map(t => ({ level: t.levelTag as Level, id: t.id, title: t.title }));
 }
 
 function estimateReadingTime(body: string): string {
@@ -143,6 +152,8 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
       }))
     : undefined;
 
+  const toc = extractToc((en ?? vi)?.body ?? '');
+
   return {
     id,
     title,
@@ -170,7 +181,8 @@ function buildDoc(id: string, files: RawArticleFile[]): DocItem {
     langStatus: { en: enStatus, vi: viStatus },
     content: viStatus === 'complete' ? (vi?.body ?? '') : '',
     contentEn: enStatus === 'complete' ? (en?.body ?? '') : '',
-    toc: extractToc((en ?? vi)?.body ?? ''),
+    toc,
+    levelSections: extractLevelSections(toc),
   };
 }
 
@@ -184,5 +196,27 @@ export const docsRegistry: DocItem[] = Array.from(filesById.entries())
 export function findDoc(id: string): DocItem | undefined {
   return docsRegistry.find(d => d.id === id);
 }
+
+/**
+ * restructure-v2 (plan/restructure-v2.md §4) — every `{concept=...}` heading
+ * across the whole registry, grouped by concept id. Powers the "Also in"
+ * auto-links on `DocViewer`; `scripts/check-concepts.mjs` flags an orphan
+ * (declared in only one place where the axis has siblings) or a link that no
+ * longer resolves. Empty until an article actually declares a concept id —
+ * the mechanism ships in Phase A, the content lands per-domain from Phase B on.
+ */
+export const conceptIndex: Map<string, ConceptEntry[]> = (() => {
+  const index = new Map<string, ConceptEntry[]>();
+  for (const doc of docsRegistry) {
+    for (const heading of doc.toc) {
+      if (!heading.concept) continue;
+      const entry: ConceptEntry = { concept: heading.concept, docId: doc.id, headingId: heading.id, title: doc.title };
+      const existing = index.get(heading.concept) ?? [];
+      existing.push(entry);
+      index.set(heading.concept, existing);
+    }
+  }
+  return index;
+})();
 
 export type { Language };

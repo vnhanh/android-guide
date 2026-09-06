@@ -35,3 +35,6 @@ jobs:
 
       - name: Contract check
         run: npm run check-contract
+
+      - name: Concept-link check
+        run: npm run check-concepts

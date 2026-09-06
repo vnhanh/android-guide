@@ -1,22 +1,34 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Filter, CheckCircle2, Layers } from 'lucide-react';
+import { ChevronDown, ChevronRight, Filter, CheckCircle2, Layers, HelpCircle } from 'lucide-react';
 import { docsRegistry } from '../data/docsRegistry';
-import { getDomain } from '../data/framework';
+import { DOMAINS } from '../data/framework';
 import { useI18n } from '../context/I18nContext';
-import { DocItem } from '../types';
+import { Level } from '../types';
 
-const BAND_ORDER: Record<string, number> = { M: 0, S: 1, L: 2, X: 0 };
+const LEVELS: Level[] = ['Mid', 'Senior', 'Lead'];
+const BAND_TO_LEVEL: Record<string, Level> = { M: 'Mid', S: 'Senior', L: 'Lead' };
 
 interface LeftSidebarProps {
   activeDocId: string;
-  onSelectDoc: (docId: string) => void;
+  onSelectDoc: (docId: string, anchor?: string) => void;
+  onOpenInterview: (domainSlug: string) => void;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
 }
 
+/**
+ * restructure-v2 (plan/restructure-v2.md §1, §3) — Domain → Level → article
+ * tree, plus an "Interview Questions" row per domain. A band=X article (the
+ * existing "principle-list" convention: one continuous file with internal
+ * "## Mid" / "## Senior" / "## Lead" headings — see `docs/01-programming-fundamentals/`)
+ * appears under every level its body actually reaches, deep-linking straight
+ * to that section rather than opening a truncated page — level here is a tag
+ * on continuous content, not a wall between separate pages.
+ */
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   activeDocId,
   onSelectDoc,
+  onOpenInterview,
   isOpenMobile = false,
   onCloseMobile
 }) => {
@@ -26,6 +38,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   const toggleCategory = (catId: string) => {
     setCollapsedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
+  };
+
+  const matchesFilter = (title: string, description: string, tags: string[]) => {
+    if (!filterText.trim()) return true;
+    const q = filterText.toLowerCase();
+    return title.toLowerCase().includes(q) || description.toLowerCase().includes(q) || tags.some(tag => tag.toLowerCase().includes(q));
+  };
+
+  const selectAndClose = (docId: string, anchor?: string) => {
+    onSelectDoc(docId, anchor);
+    if (onCloseMobile) onCloseMobile();
   };
 
   const contentNode = (
@@ -44,76 +67,97 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </div>
       </div>
 
-      {/* Categories & Docs Tree */}
+      {/* Domain -> Level -> article tree, band-ordered within each level */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-thin">
-        {/* Every article is filed on the domain taxonomy — grouped by domain, band-ordered.
-            The former legacy-category loop is gone; see docs/ directory names for grouping. */}
-        {Array.from(new Set(docsRegistry.filter(d => d.domain).map(d => d.domain as string))).map(domainSlug => {
+        {DOMAINS.map(domain => {
           const domainDocs = docsRegistry
-            .filter(d => d.domain === domainSlug)
-            .filter(d => {
-              if (!filterText.trim()) return true;
-              const q = filterText.toLowerCase();
-              return (
-                d.title.toLowerCase().includes(q) ||
-                d.description.toLowerCase().includes(q) ||
-                d.tags.some(tag => tag.toLowerCase().includes(q))
-              );
-            })
-            .sort((a, b) =>
-              (BAND_ORDER[a.band ?? 'M'] ?? 0) - (BAND_ORDER[b.band ?? 'M'] ?? 0) ||
-              a.sidebar_position - b.sidebar_position
-            );
+            .filter(d => d.domain === domain.slug)
+            .filter(d => matchesFilter(lang === 'vi' ? d.title : d.titleEn, lang === 'vi' ? d.description : d.descriptionEn, d.tags));
 
           if (filterText.trim() && domainDocs.length === 0) return null;
 
-          const domainName = getDomain(domainSlug)?.name ?? domainSlug;
-          const isCollapsed = collapsedCategories[domainSlug];
+          const isCollapsed = collapsedCategories[domain.slug];
+
+          // For each level: a band=X doc (principle-list layout, e.g. domain 01)
+          // qualifies via its internal levelSections; every other doc qualifies
+          // by a direct band -> level match (a doc without a band defaults to Mid).
+          type LevelItem = { doc: typeof domainDocs[number]; anchor: string | undefined };
+          const docsForLevel = (level: Level): LevelItem[] =>
+            domainDocs
+              .map((doc): LevelItem | null => {
+                if (doc.band === 'X') {
+                  const section = doc.levelSections.find(s => s.level === level);
+                  return section ? { doc, anchor: section.id } : null;
+                }
+                const docLevel = doc.band ? BAND_TO_LEVEL[doc.band] : 'Mid';
+                return docLevel === level ? { doc, anchor: undefined } : null;
+              })
+              .filter((x): x is LevelItem => x !== null)
+              .sort((a, b) => a.doc.sidebar_position - b.doc.sidebar_position);
 
           return (
-            <div key={domainSlug} className="space-y-1">
+            <div key={domain.slug} className="space-y-1">
               <button
-                onClick={() => toggleCategory(domainSlug)}
+                onClick={() => toggleCategory(domain.slug)}
                 className="w-full flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 transition"
               >
                 <div className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-cyan-500" />
-                  <span>{domainName}</span>
+                  <span>{domain.name}</span>
                 </div>
                 {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
 
               {!isCollapsed && (
-                <div className="mt-1 space-y-0.5 pl-2 border-l border-slate-200 dark:border-slate-800 ml-3">
-                  {domainDocs.map(doc => {
-                    const isActive = doc.id === activeDocId;
+                <div className="mt-1 space-y-3 pl-2 border-l border-slate-200 dark:border-slate-800 ml-3">
+                  {LEVELS.map(level => {
+                    const items = docsForLevel(level);
+                    if (items.length === 0) return null;
                     return (
-                      <button
-                        key={doc.id}
-                        onClick={() => {
-                          onSelectDoc(doc.id);
-                          if (onCloseMobile) onCloseMobile();
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between group ${
-                          isActive
-                            ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold border-r-2 border-cyan-500'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
-                        }`}
-                      >
-                        <span className="truncate pr-2">
-                          {doc.band && doc.band !== 'X' ? `${doc.band} · ${doc.platform} · ` : ''}
-                          {lang === 'vi' ? doc.title : doc.titleEn}
-                        </span>
-                        {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}
-                      </button>
+                      <div key={level}>
+                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-600">
+                          {level}
+                        </div>
+                        <div className="space-y-0.5">
+                          {items.map(({ doc, anchor }) => {
+                            const isActive = doc.id === activeDocId;
+                            return (
+                              <button
+                                key={`${doc.id}-${level}`}
+                                onClick={() => selectAndClose(doc.id, anchor)}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition flex items-center justify-between group ${
+                                  isActive
+                                    ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold border-r-2 border-cyan-500'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
+                                }`}
+                              >
+                                <span className="truncate pr-2">
+                                  {doc.band && doc.band !== 'X' && doc.platform && doc.platform !== 'shared' ? `${doc.platform} · ` : ''}
+                                  {lang === 'vi' ? doc.title : doc.titleEn}
+                                </span>
+                                {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-500 shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
+
+                  {!filterText.trim() && (
+                    <button
+                      onClick={() => { onOpenInterview(domain.slug); if (onCloseMobile) onCloseMobile(); }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition flex items-center gap-1.5"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5" />
+                      <span>Interview Questions</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           );
         })}
-
       </div>
     </aside>
   );

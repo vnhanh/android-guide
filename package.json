@@ -9,7 +9,8 @@
     "lint": "tsc --noEmit",
     "preview": "vite preview",
     "check-contract": "node scripts/check-contract.mjs",
-    "check-links": "node scripts/check-links.mjs"
+    "check-links": "node scripts/check-links.mjs",
+    "check-concepts": "node scripts/check-concepts.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -6,4 +6,4 @@
  * article prose back here; add or edit the corresponding docs/**\/*.md file
  * instead.
  */
-export { docsRegistry, findDoc } from './loadDocs';
+export { docsRegistry, findDoc, conceptIndex } from './loadDocs';

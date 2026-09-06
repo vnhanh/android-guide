@@ -1,11 +1,10 @@
 import React from 'react';
-import { Search, Moon, Sun, Globe, Menu, X, Layers, Sparkles, Github, Smartphone, Apple, Blend, Minus, Plus } from 'lucide-react';
+import { Search, Moon, Sun, Globe, Menu, X, Layers, Sparkles, Github, Minus, Plus } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
-import { usePlatform } from '../context/PlatformContext';
 import { useFontSize } from '../context/FontSizeContext';
 
-export type AppView = 'home' | 'doc' | 'framework' | 'matrix' | 'level' | 'domain' | 'about' | 'demo';
+export type AppView = 'home' | 'doc' | 'framework' | 'matrix' | 'level' | 'domain' | 'about' | 'demo' | 'interview';
 
 interface HeaderProps {
   currentView: AppView;
@@ -34,13 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { isDark, toggleTheme } = useTheme();
   const { lang, toggleLang, t } = useI18n();
-  const { platform, cyclePlatform } = usePlatform();
   const { label: fontLabel, increase: increaseFontSize, decrease: decreaseFontSize, canIncrease, canDecrease } = useFontSize();
-
-  const platformIcon =
-    platform === 'android' ? <Smartphone className="w-3.5 h-3.5" /> :
-    platform === 'ios' ? <Apple className="w-3.5 h-3.5" /> :
-    <Blend className="w-3.5 h-3.5" />;
 
   const navItemClass = (active: boolean) =>
     `px-2.5 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
@@ -119,17 +112,9 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{t('nav.home')}</span>
           </button>
 
-          {/* Platform switch — persists like the language toggle */}
-          <button
-            onClick={cyclePlatform}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-mono font-medium flex items-center gap-1.5 transition"
-            title="Switch platform (Android / iOS / Shared)"
-          >
-            <span className="text-cyan-500">{platformIcon}</span>
-            <span className="capitalize hidden sm:inline">{platform}</span>
-          </button>
-
-          {/* Font size control — persists like the platform/language toggles */}
+          {/* Font size control — persists like the language toggle. The platform
+              switch that used to live here is gone (restructure-v2 §2) — a leaf
+              tab now lives on the content it affects instead of the header. */}
           <div className="hidden sm:flex items-center rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 overflow-hidden">
             <button
               onClick={decreaseFontSize}

@@ -10,6 +10,7 @@ Guide* from a technology-organised document set into a career roadmap.
 | `gap-analysis.md` | Disposition of all 14 existing articles | Phase 2, when re-filing existing material |
 | `domains.md` | The 20 domain plans — band units, sections, outcomes, parity | Picking up any band unit |
 | `phases.md` | Ordered task list per phase | Working through a phase |
+| `restructure-v2.md` | Domain → Level → Leaf shape, level-as-tag UX, phases | **Read first** — supersedes the navigation and file-layout decisions below |
 
 Hosted copies of the full analysis (with diagrams):
 

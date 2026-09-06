@@ -1,15 +1,19 @@
 import React from 'react';
-import { BookOpen, ArrowLeft, Layers } from 'lucide-react';
+import { BookOpen, ArrowLeft, Layers, HelpCircle } from 'lucide-react';
 import { getDomain, filedArticlesForDomain } from '../../data/framework';
-import { Band, Platform } from '../../types';
+import { Band, Level, Platform } from '../../types';
 
 interface DomainViewProps {
   slug: string;
-  onSelectDoc: (docId: string) => void;
+  onSelectDoc: (docId: string, anchor?: string) => void;
   onBackToMatrix: () => void;
+  onOpenInterview: (domainSlug: string) => void;
 }
 
-export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBackToMatrix }) => {
+const LEVEL_ORDER: Level[] = ['Mid', 'Senior', 'Lead'];
+const BAND_TO_LEVEL: Record<string, Level> = { M: 'Mid', S: 'Senior', L: 'Lead' };
+
+export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBackToMatrix, onOpenInterview }) => {
   const domain = getDomain(slug);
 
   if (!domain) {
@@ -61,6 +65,33 @@ export const DomainView: React.FC<DomainViewProps> = ({ slug, onSelectDoc, onBac
             {filed.length} band-unit {filed.length === 1 ? 'article' : 'articles'} filed against this domain so far.
           </div>
         )}
+
+        {/* restructure-v2 §6 def-of-done, §7 — Middle/Senior/Lead + Interview
+            progress, and the entry point into this domain's interview page. */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {LEVEL_ORDER.map(level => {
+            const hasLevel = filed.some(d => (d.band === 'X' ? d.levelSections.some(s => s.level === level) : BAND_TO_LEVEL[d.band ?? 'M'] === level));
+            return (
+              <span
+                key={level}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border ${
+                  hasLevel
+                    ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                {level}
+              </span>
+            );
+          })}
+          <button
+            onClick={() => onOpenInterview(slug)}
+            className="ml-1 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20 transition flex items-center gap-1"
+          >
+            <HelpCircle className="w-3 h-3" />
+            <span>Interview Questions</span>
+          </button>
+        </div>
       </header>
 
       {domain.layout === 'principle-list' ? (

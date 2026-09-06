@@ -11,12 +11,14 @@ import { LevelView } from './components/framework/LevelView';
 import { DomainView } from './components/framework/DomainView';
 import { AboutView } from './components/framework/AboutView';
 import { DemoView } from './components/framework/DemoView';
+import { InterviewView } from './components/framework/InterviewView';
 import { docsRegistry } from './data/docsRegistry';
 import { Level } from './types';
 
 export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [activeDocId, setActiveDocId] = useState<string>('communication-mid');
+  const [activeAnchor, setActiveAnchor] = useState<string | undefined>(undefined);
   const [activeLevel, setActiveLevel] = useState<Level>('Mid');
   const [activeDomainSlug, setActiveDomainSlug] = useState<string>('');
   const [activeDemoSlug, setActiveDemoSlug] = useState<string>('');
@@ -40,9 +42,15 @@ export const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSelectDoc = (docId: string) => {
+  const handleSelectDoc = (docId: string, anchor?: string) => {
     setActiveDocId(docId);
+    setActiveAnchor(anchor);
     goTo('doc');
+  };
+
+  const handleOpenInterview = (slug: string) => {
+    setActiveDomainSlug(slug);
+    goTo('interview');
   };
 
   const handleNavigateHome = () => goTo('home');
@@ -73,7 +81,23 @@ export const AppContent: React.FC = () => {
       case 'level':
         return <LevelView level={activeLevel} onOpenDomain={handleOpenDomain} />;
       case 'domain':
-        return <DomainView slug={activeDomainSlug} onSelectDoc={handleSelectDoc} onBackToMatrix={handleOpenMatrix} />;
+        return (
+          <DomainView
+            slug={activeDomainSlug}
+            onSelectDoc={handleSelectDoc}
+            onBackToMatrix={handleOpenMatrix}
+            onOpenInterview={handleOpenInterview}
+          />
+        );
+      case 'interview':
+        return (
+          <InterviewView
+            domainSlug={activeDomainSlug}
+            onBackToDomain={() => handleOpenDomain(activeDomainSlug)}
+            onSelectDoc={handleSelectDoc}
+            onOpenInterview={handleOpenInterview}
+          />
+        );
       case 'about':
         return <AboutView />;
       case 'demo':
@@ -85,15 +109,18 @@ export const AppContent: React.FC = () => {
             <LeftSidebar
               activeDocId={activeDocId}
               onSelectDoc={handleSelectDoc}
+              onOpenInterview={handleOpenInterview}
               isOpenMobile={isMobileSidebarOpen}
               onCloseMobile={() => setIsMobileSidebarOpen(false)}
             />
 
             <DocViewer
               doc={activeDoc}
+              activeAnchor={activeAnchor}
               onSelectDoc={handleSelectDoc}
               onNavigateHome={handleNavigateHome}
               onOpenDemo={handleOpenDemo}
+              onOpenInterview={handleOpenInterview}
             />
 
             <RightSidebarTOC toc={activeDoc.toc} />

@@ -161,9 +161,17 @@ that used to duplicate these files inside `src/data/docsRegistry.ts`.
   each carries its own `pending` / `complete` status (`langStatus` on `DocItem`). A missing or
   status-`pending` slot renders an explicit "not translated yet" banner instead of silently
   falling back to the other language (`src/components/DocViewer.tsx`).
-- **Platform switch**: mirrors the language-toggle persistence pattern — a `PlatformContext`
-  holding `android | ios | shared`, persisted to `localStorage`, used by domain/matrix views to
-  pick which platform's band unit to show by default.
+- **Leaf axis (restructure-v2)**: `plan/restructure-v2.md` supersedes the navigation and
+  file-layout decisions below it in this file. Every domain declares one leaf axis in
+  `src/data/domainAxes.ts` — `language` (Java/Kotlin/Swift/Dart/TypeScript), `platform`
+  (Android/iOS/Flutter), or `none` (flowing Mid→Senior→Lead sections, no leaf split). The old
+  global `PlatformContext` header button is gone; `src/context/LeafContext.tsx` persists one
+  preference per axis, read wherever a domain declares that axis and rendered as a tab bar on
+  the content itself (`DocViewer`) rather than in the header. A domain's Level rows in the
+  sidebar (`LeftSidebar.tsx`) are a tag on continuous content, not separate pages: a band=`X`
+  article (one file spanning Mid/Senior/Lead via internal `## Mid` / `## Senior` / `## Lead`
+  headings) appears under every level it reaches and deep-links to that section
+  (`DocItem.levelSections`, `src/lib/headingTags.ts`).
 - **Search**: client-side substring search over the generated registry (`SearchModal.tsx`); no
   build-time search index.
 
